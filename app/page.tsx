@@ -23,7 +23,7 @@ import { getUniverse, type UniverseRow } from "@/lib/universe";
 import { getSectorPerformance, type SectorPerformance } from "@/lib/sectors";
 import { getRedditBuzz, type BuzzItem } from "@/lib/reddit-buzz";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 const FEATURES = [
   {
