@@ -19,20 +19,11 @@ import { getFundamentals } from "@/lib/fundamentals";
 import { buildScorecard, deriveSignal } from "@/lib/scorecard";
 import { NSE_SYMBOLS } from "@/lib/nse-symbols";
 import { formatINR } from "@/lib/utils";
+import { getUniverse, type UniverseRow } from "@/lib/universe";
+import { getSectorPerformance, type SectorPerformance } from "@/lib/sectors";
+import { getRedditBuzz, type BuzzItem } from "@/lib/reddit-buzz";
 
-export const revalidate = 300;
-
-const ANOMALIES = [
-  { sym: "DIXON", name: "Dixon Technologies", price: "14,210", chg: "+8.12%", reason: "Unusual volume — 4.2× 20-day avg on no news.", up: true },
-  { sym: "SUZLON", name: "Suzlon Energy", price: "58.40", chg: "+6.85%", reason: "Breakout above ₹57 resistance held since Feb.", up: true },
-  { sym: "PAYTM", name: "One 97 Communications", price: "412.20", chg: "-5.92%", reason: "Block deal flagged at open · 12.5L shares.", up: false },
-];
-
-const HOT_STOCKS = [
-  { sym: "BHEL", name: "Bharat Heavy Electricals", price: "284.60", chg: "+4.42%", reason: "Order win from NTPC: ₹9,500 Cr boiler contract." },
-  { sym: "HAL", name: "Hindustan Aeronautics", price: "5,128.00", chg: "+3.18%", reason: "Defence ministry cleared 156 Prachand helicopter order." },
-  { sym: "VBL", name: "Varun Beverages", price: "682.40", chg: "+2.91%", reason: "Africa expansion: South Africa bottling JV announced." },
-];
+export const revalidate = 60;
 
 const FEATURES = [
   {
@@ -72,13 +63,6 @@ const FIT_PERSONAS = [
   { icon: <Rocket className="h-4 w-4" />, label: "Growth investor", body: "Revenue & EPS CAGR, margin expansion, sector tailwinds." },
   { icon: <Coins className="h-4 w-4" />, label: "Income investor", body: "Dividend yield, payout consistency, free cash flow cover." },
   { icon: <Trophy className="h-4 w-4" />, label: "Momentum trader", body: "RSI, volume surges, 52W highs, breakout candidates." },
-];
-
-const SECTORS = [
-  { name: "Banks", pct: "+1.42%", up: true, top: ["HDFCBANK", "ICICIBANK", "SBIN"] },
-  { name: "IT", pct: "+0.88%", up: true, top: ["TCS", "INFY", "WIPRO"] },
-  { name: "Auto", pct: "+2.14%", up: true, top: ["M&M", "TATAMOTORS", "MARUTI"] },
-  { name: "Pharma", pct: "-0.38%", up: false, top: ["SUNPHARMA", "CIPLA", "DRREDDY"] },
 ];
 
 const TESTIMONIALS = [
@@ -505,25 +489,62 @@ function AnomaliesSection() {
         sub="Volume spikes, gap-ups, 52-week breakouts, block deals. We flag what's actually moving — not the noise."
         href="/anomalies"
       />
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        {ANOMALIES.map((a) => (
-          <article key={a.sym} className="surface group p-5 transition hover:-translate-y-0.5 hover:shadow-pop">
+      <Suspense fallback={<CardGridSkeleton n={3} />}>
+        <AnomaliesAsync />
+      </Suspense>
+    </section>
+  );
+}
+
+function describeAnomaly(r: UniverseRow): string | null {
+  const chg = r.quote?.changePct ?? 0;
+  const rp = r.rangePosition;
+  if (rp !== null && rp > 95) return `Breakout — within ${(100 - rp).toFixed(1)}% of 52-week high.`;
+  if (rp !== null && rp < 5) return `Breakdown — within ${rp.toFixed(1)}% of 52-week low.`;
+  if (chg >= 5) return `Gap-up of ${chg.toFixed(2)}% intraday on heavy interest.`;
+  if (chg <= -5) return `Gap-down of ${chg.toFixed(2)}% — sharp intraday reversal.`;
+  if (Math.abs(chg) >= 3) return `Outsized intraday move — ${chg > 0 ? "up" : "down"} ${Math.abs(chg).toFixed(2)}%.`;
+  return null;
+}
+
+async function AnomaliesAsync() {
+  const universe = await getUniverse().catch(() => [] as UniverseRow[]);
+  const flagged = universe
+    .map((r) => ({ row: r, reason: describeAnomaly(r) }))
+    .filter((x): x is { row: UniverseRow; reason: string } => x.reason !== null && x.row.quote !== null)
+    .sort((a, b) => Math.abs(b.row.quote!.changePct) - Math.abs(a.row.quote!.changePct))
+    .slice(0, 3);
+
+  if (flagged.length === 0) {
+    return <p className="mt-8 text-sm text-muted">Markets are quiet right now — no anomalies above threshold.</p>;
+  }
+
+  return (
+    <div className="mt-8 grid gap-4 md:grid-cols-3">
+      {flagged.map(({ row, reason }) => {
+        const up = (row.quote?.changePct ?? 0) >= 0;
+        return (
+          <Link
+            key={row.entry.symbol}
+            href={`/stock/${row.entry.symbol}`}
+            className="surface group p-5 transition hover:-translate-y-0.5 hover:shadow-pop"
+          >
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-sm font-bold">{a.sym}</div>
-                <div className="text-[11px] text-muted">{a.name}</div>
+                <div className="text-sm font-bold">{row.entry.symbol}</div>
+                <div className="text-[11px] text-muted">{row.entry.name}</div>
               </div>
-              <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold ${a.up ? "bg-accent/15 text-accent" : "bg-danger/15 text-danger"}`}>
-                {a.up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {a.chg}
+              <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold ${up ? "bg-accent/15 text-accent" : "bg-danger/15 text-danger"}`}>
+                {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {up ? "+" : ""}{row.quote!.changePct.toFixed(2)}%
               </span>
             </div>
-            <div className="mt-2 num-display text-xl font-bold tabular-nums">₹{a.price}</div>
-            <p className="mt-2 text-xs leading-relaxed text-muted">{a.reason}</p>
-          </article>
-        ))}
-      </div>
-    </section>
+            <div className="mt-2 num-display text-xl font-bold tabular-nums">{formatINR(row.quote!.lastPrice)}</div>
+            <p className="mt-2 text-xs leading-relaxed text-muted">{reason}</p>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
 
@@ -537,25 +558,63 @@ function HotStocksSection() {
         sub="Most-discussed tickers across r/IndianStockMarket, news feeds and earnings transcripts — ranked by signal, not volume."
         href="/trending"
       />
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        {HOT_STOCKS.map((h) => (
-          <article key={h.sym} className="surface relative overflow-hidden p-5">
+      <Suspense fallback={<CardGridSkeleton n={3} />}>
+        <HotStocksAsync />
+      </Suspense>
+    </section>
+  );
+}
+
+async function HotStocksAsync() {
+  const [buzz, universe] = await Promise.all([
+    getRedditBuzz().catch(() => null),
+    getUniverse().catch(() => [] as UniverseRow[]),
+  ]);
+  const byKey = new Map(universe.map((r) => [`${r.entry.exchange}:${r.entry.symbol}`, r]));
+
+  const items: BuzzItem[] = (buzz?.items ?? []).slice(0, 3);
+
+  if (items.length === 0) {
+    return <p className="mt-8 text-sm text-muted">Buzz feed warming up — check back in a few minutes.</p>;
+  }
+
+  return (
+    <div className="mt-8 grid gap-4 md:grid-cols-3">
+      {items.map((b) => {
+        const row = byKey.get(`${b.entry.exchange}:${b.entry.symbol}`);
+        const chg = row?.quote?.changePct ?? null;
+        const price = row?.quote?.lastPrice ?? null;
+        const up = (chg ?? 0) >= 0;
+        return (
+          <Link
+            key={b.entry.symbol}
+            href={`/stock/${b.entry.symbol}`}
+            className="surface relative overflow-hidden p-5 transition hover:-translate-y-0.5 hover:shadow-pop"
+          >
             <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand to-accent" />
             <div className="flex items-start justify-between pl-2">
               <div>
-                <div className="text-sm font-bold">{h.sym}</div>
-                <div className="text-[11px] text-muted">{h.name}</div>
+                <div className="text-sm font-bold">{b.entry.symbol}</div>
+                <div className="text-[11px] text-muted">{b.entry.name}</div>
               </div>
-              <span className="inline-flex items-center gap-1 rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-semibold text-accent">
-                <TrendingUp className="h-3 w-3" /> {h.chg}
-              </span>
+              {chg !== null && (
+                <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold ${up ? "bg-accent/15 text-accent" : "bg-danger/15 text-danger"}`}>
+                  {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  {up ? "+" : ""}{chg.toFixed(2)}%
+                </span>
+              )}
             </div>
-            <div className="mt-2 pl-2 num-display text-xl font-bold tabular-nums">₹{h.price}</div>
-            <p className="mt-2 pl-2 text-xs leading-relaxed text-fg">{h.reason}</p>
-          </article>
-        ))}
-      </div>
-    </section>
+            <div className="mt-2 pl-2 num-display text-xl font-bold tabular-nums">
+              {price !== null ? formatINR(price) : <span className="text-muted text-sm font-normal">—</span>}
+            </div>
+            <p className="mt-2 pl-2 text-xs leading-relaxed text-fg line-clamp-3">{b.topPost.title}</p>
+            <div className="mt-2 pl-2 text-[10px] uppercase tracking-wider text-muted">
+              r/{b.topPost.subreddit} · {b.mentions} mentions
+            </div>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
 
@@ -590,29 +649,64 @@ function SectorSpotlights() {
         sub="Live sector heatmap with top movers in each. Spot rotations before they become consensus."
         href="/sectors"
       />
-      <div className="mt-8 grid gap-4 md:grid-cols-4">
-        {SECTORS.map((s) => (
-          <article key={s.name} className="surface p-5">
+      <Suspense fallback={<CardGridSkeleton n={4} compact />}>
+        <SectorSpotlightsAsync />
+      </Suspense>
+    </section>
+  );
+}
+
+async function SectorSpotlightsAsync() {
+  const all = await getSectorPerformance().catch(() => [] as SectorPerformance[]);
+  // Pick 4: the two strongest and two weakest non-empty sectors with the most movement.
+  const ranked = [...all].sort((a, b) => Math.abs(b.avgChangePct) - Math.abs(a.avgChangePct)).slice(0, 4);
+
+  if (ranked.length === 0) {
+    return <p className="mt-8 text-sm text-muted">Sector data unavailable right now.</p>;
+  }
+
+  return (
+    <div className="mt-8 grid gap-4 md:grid-cols-4">
+      {ranked.map((s) => {
+        const up = s.avgChangePct >= 0;
+        const top = [...s.rows]
+          .filter((r) => r.quote)
+          .sort((a, b) => (b.quote!.changePct) - (a.quote!.changePct))
+          .slice(0, 3);
+        return (
+          <article key={s.sector} className="surface p-5">
             <div className="flex items-center justify-between">
-              <div className="font-semibold">{s.name}</div>
-              <span className={`text-xs font-semibold tabular-nums ${s.up ? "text-accent" : "text-danger"}`}>{s.pct}</span>
+              <div className="font-semibold">{s.sector}</div>
+              <span className={`text-xs font-semibold tabular-nums ${up ? "text-accent" : "text-danger"}`}>
+                {up ? "+" : ""}{s.avgChangePct.toFixed(2)}%
+              </span>
             </div>
             <div className="mt-4 space-y-2">
-              {s.top.map((sym) => (
+              {top.map((r) => (
                 <Link
-                  key={sym}
-                  href={`/stock/${sym}`}
+                  key={r.entry.symbol}
+                  href={`/stock/${r.entry.symbol}`}
                   className="flex items-center justify-between rounded-lg border border-border/60 bg-bg/40 px-3 py-2 text-xs hover:border-brand"
                 >
-                  <span className="font-semibold">{sym}</span>
+                  <span className="font-semibold">{r.entry.symbol}</span>
                   <ArrowRight className="h-3 w-3 text-muted" />
                 </Link>
               ))}
             </div>
           </article>
-        ))}
-      </div>
-    </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function CardGridSkeleton({ n, compact }: { n: number; compact?: boolean }) {
+  return (
+    <div className={`mt-8 grid gap-4 ${n >= 4 ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className={`shimmer rounded-2xl ${compact ? "h-40" : "h-32"}`} />
+      ))}
+    </div>
   );
 }
 
