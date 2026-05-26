@@ -1,4 +1,4 @@
-# Stocksbrew India
+# stocकaar
 
 Indian stock market analysis — watchlists, alerts, market dashboard, paid subscription.
 
