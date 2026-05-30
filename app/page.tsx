@@ -79,7 +79,7 @@ const FAQS = [
   { q: "What payment methods?", a: "Razorpay handles checkout — UPI, all major Indian debit/credit cards, net banking, and wallets. GST invoices issued on request." },
 ];
 
-const HERO_SYMBOLS = ["RELIANCE", "TCS", "HDFCBANK", "INFY", "TATAMOTORS", "ITC"] as const;
+const HERO_SYMBOLS = ["RELIANCE", "BAJFINANCE", "HDFCBANK", "INFY", "TATAMOTORS", "ITC"] as const;
 
 type LiveStock = {
   symbol: string;

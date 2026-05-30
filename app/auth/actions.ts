@@ -57,3 +57,17 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/");
 }
+
+export async function signInWithGoogle() {
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    },
+  });
+  if (error || !data.url) {
+    redirect("/auth/login?error=google_oauth_failed");
+  }
+  redirect(data.url);
+}

@@ -52,7 +52,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.005em;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 [data-theme="dark"] body {

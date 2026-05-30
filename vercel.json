@@ -1,24 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/check-alerts",
-      "schedule": "*/5 4-10 * * 1-5"
-    },
-    {
       "path": "/api/cron/daily-brief",
-      "schedule": "30 3 * * 1-5"
-    },
-    {
-      "path": "/api/cron/warm-universe",
-      "schedule": "*/8 3-11 * * 1-5"
-    },
-    {
-      "path": "/api/cron/reddit-buzz",
-      "schedule": "*/14 * * * *"
-    },
-    {
-      "path": "/api/cron/inst-flows",
-      "schedule": "37 13 * * 1-5"
+      "schedule": "30 3 * * *"
     }
   ]
 }
