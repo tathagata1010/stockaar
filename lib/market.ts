@@ -12,10 +12,16 @@ export type IndexQuote = {
 };
 
 export const INDICES = [
-  { name: "Nifty 50", yahooSymbol: "^NSEI" },
-  { name: "Sensex", yahooSymbol: "^BSESN" },
-  { name: "Bank Nifty", yahooSymbol: "^NSEBANK" },
+  { name: "Nifty 50", yahooSymbol: "^NSEI", slug: "nifty-50" },
+  { name: "Sensex", yahooSymbol: "^BSESN", slug: "sensex" },
+  { name: "Bank Nifty", yahooSymbol: "^NSEBANK", slug: "bank-nifty" },
 ] as const;
+
+export type IndexSlug = (typeof INDICES)[number]["slug"];
+
+export function findIndexBySlug(slug: string) {
+  return INDICES.find((i) => i.slug === slug) ?? null;
+}
 
 const INDEX_TTL = 60;
 const MOVERS_TTL = 300;

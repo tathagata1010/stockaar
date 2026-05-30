@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { getAllIndices, getTopMovers } from "@/lib/market";
+import { getAllIndices, getTopMovers, INDICES } from "@/lib/market";
 import { formatINR, formatPct, cn } from "@/lib/utils";
 import { isMarketOpen } from "@/lib/constants";
 import { NSE_SYMBOLS } from "@/lib/nse-symbols";
@@ -69,14 +69,10 @@ async function IndicesSection() {
       ) : (
         indices.map((idx, i) => {
           const up = idx.change >= 0;
-          return (
-            <div
-              key={idx.yahooSymbol}
-              className={cn(
-                "group surface relative overflow-hidden p-5 hover-lift fade-up",
-                `fade-up-${i + 1}`,
-              )}
-            >
+          const meta = INDICES.find((m) => m.yahooSymbol === idx.yahooSymbol);
+          const href = meta ? `/indices/${meta.slug}` : null;
+          const TileInner = (
+            <>
               <div className={cn(
                 "absolute inset-y-0 left-0 w-1 bg-gradient-to-b",
                 up ? "from-accent via-accent/70 to-brand" : "from-danger via-danger/70 to-warning",
@@ -105,7 +101,18 @@ async function IndicesSection() {
                   {idx.change > 0 ? "+" : ""}{idx.change.toFixed(2)} ({formatPct(idx.changePct)})
                 </div>
               </div>
-            </div>
+            </>
+          );
+          const className = cn(
+            "group surface relative overflow-hidden p-5 hover-lift fade-up block",
+            `fade-up-${i + 1}`,
+          );
+          return href ? (
+            <Link key={idx.yahooSymbol} href={href} className={className} aria-label={`View ${idx.name} details`}>
+              {TileInner}
+            </Link>
+          ) : (
+            <div key={idx.yahooSymbol} className={className}>{TileInner}</div>
           );
         })
       )}

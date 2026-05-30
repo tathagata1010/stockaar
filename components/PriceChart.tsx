@@ -19,10 +19,12 @@ const RANGES = [
 type Point = { t: number; p: number };
 
 export function PriceChart({
-  symbol, exchange,
+  symbol, exchange, historyPath, title,
 }: {
   symbol: string;
   exchange: "NSE" | "BSE";
+  historyPath?: string;
+  title?: string;
 }) {
   const [range, setRange] = useState<typeof RANGES[number]["key"]>("1mo");
   const [points, setPoints] = useState<Point[]>([]);
@@ -34,7 +36,10 @@ export function PriceChart({
     const ctrl = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(`/api/stocks/${symbol}/history?range=${range}&exchange=${exchange}`, { signal: ctrl.signal })
+    const base = historyPath ?? `/api/stocks/${symbol}/history`;
+    const sep = base.includes("?") ? "&" : "?";
+    const url = `${base}${sep}range=${range}&exchange=${exchange}`;
+    fetch(url, { signal: ctrl.signal })
       .then((r) => r.json())
       .then((d) => {
         if (d.error) { setError(d.error); setPoints([]); return; }
@@ -44,7 +49,7 @@ export function PriceChart({
       .catch((e) => { if (e.name !== "AbortError") setError(e.message); })
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, [symbol, exchange, range]);
+  }, [symbol, exchange, range, historyPath]);
 
   const { open, last, change, changePct, up } = useMemo(() => {
     if (points.length < 2) return { open: 0, last: 0, change: 0, changePct: 0, up: true };
