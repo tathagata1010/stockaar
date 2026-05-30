@@ -8,6 +8,11 @@ export type IndexQuote = {
   lastPrice: number;
   change: number;
   changePct: number;
+  dayHigh: number;
+  dayLow: number;
+  previousClose: number;
+  fiftyTwoWeekHigh: number;
+  fiftyTwoWeekLow: number;
   updatedAt: number;
 };
 
@@ -52,6 +57,11 @@ export async function getIndex(name: string, yahooSymbol: string): Promise<Index
       lastPrice,
       change,
       changePct: close ? (change / close) * 100 : 0,
+      dayHigh: meta.regularMarketDayHigh ?? lastPrice,
+      dayLow: meta.regularMarketDayLow ?? lastPrice,
+      previousClose: close,
+      fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? lastPrice,
+      fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? lastPrice,
       updatedAt: Date.now(),
     };
     await redis.set(key, quote, { ex: INDEX_TTL }).catch(() => {});
