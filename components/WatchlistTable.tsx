@@ -2,22 +2,66 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { formatINR, formatPct, cn } from "@/lib/utils";
 import type { Quote } from "@/lib/upstox";
 import { StockLogo } from "./StockLogo";
 import { NSE_SYMBOLS_LITE as NSE_SYMBOLS } from "@/lib/nse-symbols-lite";
+import { isMarketOpen } from "@/lib/constants";
 import { Trash2 } from "lucide-react";
 import { FlashNumber } from "@/components/anim/FlashNumber";
 
 type Item = { id: string; symbol: string; exchange: "NSE" | "BSE"; added_at: string };
 
+const POLL_MS = 60_000;
+
 export function WatchlistTable({
-  items, quotes,
+  items, quotes: initialQuotes,
 }: {
   items: Item[];
   quotes: Record<string, Quote>;
 }) {
   const router = useRouter();
+  const [quotes, setQuotes] = useState(initialQuotes);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setQuotes(initialQuotes);
+  }, [initialQuotes]);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    let cancelled = false;
+
+    async function tick() {
+      if (cancelled) return;
+      if (typeof document !== "undefined" && document.visibilityState === "visible" && isMarketOpen()) {
+        try {
+          const tokens = items.map((it) => `${it.exchange}:${it.symbol}`).join(",");
+          const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(tokens)}`);
+          if (res.ok) {
+            const { data } = (await res.json()) as { data: Quote[] };
+            if (!cancelled && Array.isArray(data)) {
+              setQuotes((prev) => {
+                const next = { ...prev };
+                for (const q of data) next[`${q.exchange}:${q.symbol}`] = q;
+                return next;
+              });
+            }
+          }
+        } catch {
+          // swallow — next tick will retry
+        }
+      }
+      if (!cancelled) timer.current = setTimeout(tick, POLL_MS);
+    }
+
+    timer.current = setTimeout(tick, POLL_MS);
+    return () => {
+      cancelled = true;
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [items]);
 
   if (items.length === 0) {
     return (

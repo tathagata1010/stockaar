@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bgDark" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b1530"/>
+      <stop offset="1" stop-color="#152352"/>
+    </linearGradient>
+    <linearGradient id="bgLight" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eef3ff"/>
+      <stop offset="1" stop-color="#d8e8ff"/>
+    </linearGradient>
+    <linearGradient id="c1" x1="0" y1="48" x2="0" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1ea98a"/>
+      <stop offset="1" stop-color="#38e0c8"/>
+    </linearGradient>
+    <linearGradient id="c2" x1="0" y1="44" x2="0" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22c896"/>
+      <stop offset="1" stop-color="#5af0c4"/>
+    </linearGradient>
+    <linearGradient id="c3" x1="0" y1="40" x2="0" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f7be0"/>
+      <stop offset="1" stop-color="#5af0c4"/>
+    </linearGradient>
+    <linearGradient id="trend" x1="12" y1="50" x2="56" y2="14" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2d6dff"/>
+      <stop offset="1" stop-color="#0fb39a"/>
+    </linearGradient>
+    <style>
+      .bg-dark { display: none; }
+      .bg-light { display: inline; }
+      .wick { stroke: #1ea98a; }
+      .baseline { stroke: #0b1530; stroke-opacity: 0.12; }
+      @media (prefers-color-scheme: dark) {
+        .bg-dark { display: inline; }
+        .bg-light { display: none; }
+        .wick { stroke: #5af0c4; }
+        .baseline { stroke: #ffffff; stroke-opacity: 0.10; }
+      }
+    </style>
+  </defs>
+
+  <rect class="bg-light" width="64" height="64" rx="14" fill="url(#bgLight)"/>
+  <rect class="bg-dark" width="64" height="64" rx="14" fill="url(#bgDark)"/>
+
+  <line class="baseline" x1="10" y1="52" x2="54" y2="52" stroke-width="0.8"/>
+
+  <line class="wick" x1="18" y1="30" x2="18" y2="48" stroke-width="1.4" stroke-linecap="round"/>
+  <rect x="15" y="34" width="6" height="12" rx="1.2" fill="url(#c1)"/>
+
+  <line class="wick" x1="32" y1="22" x2="32" y2="46" stroke-width="1.4" stroke-linecap="round"/>
+  <rect x="29" y="26" width="6" height="14" rx="1.2" fill="url(#c2)"/>
+
+  <line class="wick" x1="46" y1="14" x2="46" y2="42" stroke-width="1.4" stroke-linecap="round"/>
+  <rect x="43" y="18" width="6" height="18" rx="1.2" fill="url(#c3)"/>
+
+  <path d="M14 38 L28 30 L42 20 L52 12"
+        fill="none" stroke="url(#trend)" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M52 12 L46 12 M52 12 L52 18"
+        fill="none" stroke="url(#trend)" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

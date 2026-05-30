@@ -33,9 +33,7 @@ export function LiveHeroPrice({
         return;
       }
       try {
-        const res = await fetch(`/api/quote/${encodeURIComponent(symbol)}?exchange=${exchange}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`/api/quote/${encodeURIComponent(symbol)}?exchange=${exchange}`);
         if (res.ok) {
           const json = await res.json();
           const next = json?.data as Quote | undefined;
