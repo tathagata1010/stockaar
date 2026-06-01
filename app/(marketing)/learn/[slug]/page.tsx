@@ -14,7 +14,23 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const a = await getArticle(params.slug);
   if (!a) return {};
-  return { title: `${a.title} · Stocksbrew Learn`, description: a.description };
+  const url = `/learn/${a.slug}`;
+  return {
+    title: a.title,
+    description: a.description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      title: a.title,
+      description: a.description,
+      url,
+      publishedTime: a.publishedAt || undefined,
+      authors: ["stocकaar"],
+      section: a.category,
+    },
+    twitter: { card: "summary_large_image", title: a.title, description: a.description },
+    keywords: [a.category, a.title, "Indian stock market guide", "investing India"],
+  };
 }
 
 export default async function LearnArticlePage({ params }: { params: { slug: string } }) {
@@ -27,8 +43,29 @@ export default async function LearnArticlePage({ params }: { params: { slug: str
     catch { return s; }
   };
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://stockaar.vercel.app";
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    description: article.description,
+    datePublished: article.publishedAt || undefined,
+    author: { "@type": "Organization", name: "stocकaar" },
+    publisher: {
+      "@type": "Organization",
+      name: "stocकaar",
+      logo: { "@type": "ImageObject", url: `${siteUrl}/icon.svg` },
+    },
+    mainEntityOfPage: `${siteUrl}/learn/${article.slug}`,
+    articleSection: article.category,
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       <Link href="/learn" className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-brand">
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to Learn

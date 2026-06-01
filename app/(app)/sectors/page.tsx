@@ -8,6 +8,13 @@ import { AppShell } from "@/components/shell/AppShell";
 
 export const revalidate = 300;
 
+export const metadata = {
+  title: "Sector Heatmap — NSE Industry Performance",
+  description: "Live sector performance across the Indian market — IT, Banks, Pharma, Auto, FMCG, Energy and more. Heatmap view.",
+  alternates: { canonical: "/sectors" },
+  keywords: ["NSE sector performance", "Indian market sectors", "sector heatmap India"],
+};
+
 export default function SectorsPage() {
   return (
     <AppShell>

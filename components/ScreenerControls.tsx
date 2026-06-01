@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { ALL_SECTORS } from "@/lib/nse-symbols";
+import { Select } from "@/components/ui/Select";
 import {
   X, Filter, RotateCcw,
   BadgeIndianRupee, TrendingUp, Sparkles, Zap, Target, Gauge, Building2,
@@ -309,22 +310,15 @@ function SelectField({
   onChange: (k: string, v: string) => void;
   options: { value: string; label: string }[];
 }) {
-  const active = value !== "all";
   return (
     <label className="mt-3 flex flex-col gap-1">
       <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</span>
-      <select
+      <Select
         value={value}
-        onChange={(e) => onChange(name, e.target.value)}
-        className={cn(
-          "rounded-md border bg-bg/40 px-3 py-2 text-sm transition focus:outline-none",
-          active ? "border-brand/60 text-brand" : "border-border focus:border-brand",
-        )}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+        onChange={(v) => onChange(name, v)}
+        options={options}
+        ariaLabel={label}
+      />
     </label>
   );
 }

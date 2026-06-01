@@ -6,6 +6,13 @@ import { AppShell } from "@/components/shell/AppShell";
 
 export const revalidate = 900;
 
+export const metadata = {
+  title: "Indian Market News — Latest NSE & BSE Headlines",
+  description: "Latest news from Indian stock markets — NSE, BSE, earnings, IPOs, RBI policy, and global cues that move Indian stocks.",
+  alternates: { canonical: "/news" },
+  keywords: ["Indian stock market news", "NSE news", "BSE news today", "share market news India"],
+};
+
 export default async function NewsPage() {
   const news = await getMarketNews(60);
 

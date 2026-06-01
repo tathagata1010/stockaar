@@ -10,6 +10,12 @@ import { AppShell } from "@/components/shell/AppShell";
 
 export const revalidate = 60;
 
+export const metadata = {
+  title: "Dashboard — Nifty, Sensex, Bank Nifty Live",
+  description: "Live Indian market dashboard: Nifty 50, Sensex, Bank Nifty prices with top gainers and losers across NSE and BSE.",
+  alternates: { canonical: "/dashboard" },
+};
+
 export default function DashboardPage() {
   const open = isMarketOpen();
 

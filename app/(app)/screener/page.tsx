@@ -10,6 +10,13 @@ import { AppShell } from "@/components/shell/AppShell";
 
 export const revalidate = 300;
 
+export const metadata = {
+  title: "Stock Screener — Filter NSE & BSE Stocks",
+  description: "Free Indian stock screener: filter by P/E, market cap, dividend yield, sector, RSI, and 200+ stocks across NSE and BSE.",
+  alternates: { canonical: "/screener" },
+  keywords: ["stock screener India", "NSE screener", "BSE screener", "screen stocks India", "PE filter stocks"],
+};
+
 type SP = Record<string, string | undefined>;
 
 function num(v?: string): number | undefined {

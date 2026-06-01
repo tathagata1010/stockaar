@@ -8,6 +8,12 @@ import { AppShell } from "@/components/shell/AppShell";
 
 export const revalidate = 60;
 
+export const metadata = {
+  title: "Trending Stocks — Most Searched on NSE Today",
+  description: "Most searched and discussed Indian stocks right now, ranked by retail interest and momentum.",
+  alternates: { canonical: "/trending" },
+};
+
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms;
   const m = Math.floor(diff / 60000);

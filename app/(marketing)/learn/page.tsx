@@ -6,6 +6,13 @@ import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
 
+export const metadata = {
+  title: "Learn — Indian Stock Market Guides",
+  description: "Plain-English guides for Indian retail investors: opening a demat account, reading balance sheets, P/E ratios, options, mutual funds, and more.",
+  alternates: { canonical: "/learn" },
+  keywords: ["learn stock market India", "investing for beginners India", "Indian stock market guide", "demat account guide"],
+};
+
 const CATEGORY_TINTS: Record<string, string> = {
   Basics: "chip-brand",
   Markets: "chip-accent",

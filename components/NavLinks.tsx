@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, Star, Flame, Target, Filter, Zap, Bell, User2,
+  LayoutDashboard, Star, Flame, Target, Filter, Zap, Bell,
   Newspaper, Layers3, CalendarDays, Wrench, GraduationCap, ChevronDown,
   Briefcase, ShoppingCart, Activity,
 } from "lucide-react";
@@ -34,9 +34,7 @@ export const TOOLS = [
   { href: "/learn", label: "Learn Hub", icon: GraduationCap, desc: "Investing guides" },
 ];
 
-export const RIGHT = [
-  { href: "/account", label: "Account", icon: User2 },
-];
+export const RIGHT: { href: string; label: string; icon: typeof LayoutDashboard }[] = [];
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -45,7 +43,7 @@ function isActive(pathname: string, href: string) {
 export function NavLinks() {
   const pathname = usePathname();
   return (
-    <div className="hidden items-center gap-1 md:flex">
+    <div className="hidden items-center gap-0.5 md:flex">
       {PRIMARY.map((l) => <NavItem key={l.href} {...l} active={isActive(pathname, l.href)} />)}
       <Dropdown
         label="Discover"
@@ -72,7 +70,7 @@ function NavItem({
       href={href}
       prefetch
       className={cn(
-        "group relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-all",
+        "group relative inline-flex items-center gap-1 rounded-lg px-1.5 py-1.5 text-[13px] transition-all lg:gap-1.5 lg:px-2.5 lg:text-sm",
         active ? "font-semibold text-brand" : "text-muted hover:bg-card/60 hover:text-fg",
       )}
     >
@@ -118,7 +116,7 @@ function Dropdown({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "group relative inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm transition-all",
+          "group relative inline-flex items-center gap-0.5 rounded-lg px-1.5 py-1.5 text-[13px] transition-all lg:gap-1 lg:px-2.5 lg:text-sm",
           active || open ? "font-semibold text-brand" : "text-muted hover:bg-card/60 hover:text-fg",
         )}
       >

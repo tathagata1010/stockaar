@@ -15,6 +15,12 @@ import {
 
 export const revalidate = 3600;
 
+export const metadata = {
+  title: `About ${APP_NAME}`,
+  description: `${APP_NAME} is a solo-built stock intelligence platform for Indian retail investors — live NSE & BSE prices, scorecards, screener, and AI briefs.`,
+  alternates: { canonical: "/about" },
+};
+
 export default function AboutPage() {
   const symbolsCount = NSE_SYMBOLS.length;
 

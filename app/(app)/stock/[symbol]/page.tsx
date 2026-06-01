@@ -36,6 +36,30 @@ export async function generateStaticParams() {
   return NSE_SYMBOLS.slice(0, 100).map((s) => ({ symbol: s.symbol }));
 }
 
+export async function generateMetadata({ params }: { params: { symbol: string } }) {
+  const symbol = params.symbol.toUpperCase();
+  const meta = NSE_SYMBOLS.find((s) => s.symbol === symbol);
+  if (!meta) return { title: symbol };
+  const title = `${meta.name} (${symbol}) Share Price · Live ${meta.exchange}`;
+  const description = `Live ${meta.name} (${symbol}) share price on ${meta.exchange}. Charts, scorecard, key stats, financials, analyst ratings, and news. Sector: ${meta.sector}.`;
+  const url = `/stock/${symbol}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: "website" },
+    twitter: { card: "summary_large_image", title, description },
+    keywords: [
+      `${symbol} share price`,
+      `${meta.name} share price`,
+      `${symbol} stock`,
+      `${meta.name} stock analysis`,
+      `${symbol} ${meta.exchange}`,
+      `${meta.sector} stocks India`,
+    ],
+  };
+}
+
 export default function StockDetailPage({ params }: { params: { symbol: string } }) {
   const symbol = params.symbol.toUpperCase();
   const meta = NSE_SYMBOLS.find((s) => s.symbol === symbol);
@@ -89,8 +113,34 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
     { id: "analyst", label: "Analyst", icon: <Users className="h-3.5 w-3.5" /> },
   ];
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://stockaar.vercel.app";
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+        { "@type": "ListItem", position: 2, name: "Stocks", item: `${siteUrl}/dashboard` },
+        { "@type": "ListItem", position: 3, name: symbol, item: `${siteUrl}/stock/${symbol}` },
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FinancialProduct",
+      name: `${meta.name} (${symbol})`,
+      description: `${meta.name} share price and analysis on ${meta.exchange}.`,
+      url: `${siteUrl}/stock/${symbol}`,
+      category: meta.sector,
+      provider: { "@type": "Organization", name: "stocकaar" },
+    },
+  ];
+
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <StickyScrollLayout hero={heroShell} sections={sections}>
         <StickySection id="overview">
           <SectionHeader title="Overview" subtitle="Live chart and day statistics" />

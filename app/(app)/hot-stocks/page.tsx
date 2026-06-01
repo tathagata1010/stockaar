@@ -8,6 +8,13 @@ import { Flame, TrendingUp, TrendingDown, Target, Trophy, Award, Sparkles } from
 
 export const revalidate = 300;
 
+export const metadata = {
+  title: "Hot Stocks Today — Trending NSE & BSE Picks",
+  description: "Top trending stocks on NSE and BSE right now — picked from volume spikes, momentum, and unusual market activity.",
+  alternates: { canonical: "/hot-stocks" },
+  keywords: ["hot stocks today India", "trending stocks NSE", "best stocks to buy today", "stocks to watch India"],
+};
+
 export default function HotStocksPage() {
   return (
     <Suspense fallback={<HotShell loading />}>

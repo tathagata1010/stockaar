@@ -4,6 +4,18 @@ import { APP_NAME, PLANS } from "@/lib/constants";
 
 export const revalidate = 3600;
 
+export const metadata = {
+  title: "Pricing — Free & Pro Plans",
+  description: `${APP_NAME} pricing: Free plan with 15 stocks & alerts, or Pro at ₹299/month (₹2,999/year) for unlimited tracking, screener, scorecards, hot stocks, and AI briefs.`,
+  alternates: { canonical: "/pricing" },
+  openGraph: {
+    title: `Pricing — ${APP_NAME}`,
+    description: "Free or Pro at ₹299/mo. Unlimited stock tracking, alerts, AI briefs for Indian investors.",
+    url: "/pricing",
+  },
+  keywords: ["stock screener India price", "best stock app India", "NSE app subscription", "Indian stock app pricing"],
+};
+
 const FREE_FEATURES = [
   "Track 3 stocks",
   "3 active price alerts",

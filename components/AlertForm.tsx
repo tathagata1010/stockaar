@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import type { SymbolEntry } from "@/lib/nse-symbols";
 import { SymbolPicker } from "@/components/SymbolPicker";
+import { Select } from "@/components/ui/Select";
 
 export function AlertForm({ disabled, defaultSymbol }: { disabled?: boolean; defaultSymbol?: string }) {
   const router = useRouter();
@@ -59,24 +60,26 @@ export function AlertForm({ disabled, defaultSymbol }: { disabled?: boolean; def
           onSelect={onPick}
           recentKey="stockaar:alerts:recents"
         />
-        <select
+        <Select
           value={exchange}
-          onChange={(e) => setExchange(e.target.value as "NSE" | "BSE")}
+          onChange={(v) => setExchange(v)}
           disabled={disabled || pending}
-          className="rounded-lg border border-border bg-bg/40 px-3 py-2 text-sm"
-        >
-          <option>NSE</option>
-          <option>BSE</option>
-        </select>
-        <select
+          ariaLabel="Exchange"
+          options={[
+            { value: "NSE", label: "NSE", hint: "National Stock Exchange" },
+            { value: "BSE", label: "BSE", hint: "Bombay Stock Exchange" },
+          ]}
+        />
+        <Select
           value={condition}
-          onChange={(e) => setCondition(e.target.value as "above" | "below")}
+          onChange={(v) => setCondition(v)}
           disabled={disabled || pending}
-          className="rounded-lg border border-border bg-bg/40 px-3 py-2 text-sm"
-        >
-          <option value="above">Goes above</option>
-          <option value="below">Goes below</option>
-        </select>
+          ariaLabel="Trigger condition"
+          options={[
+            { value: "above", label: "Goes above", hint: "Trigger when price ≥ target" },
+            { value: "below", label: "Goes below", hint: "Trigger when price ≤ target" },
+          ]}
+        />
         <input
           value={target}
           onChange={(e) => setTarget(e.target.value)}

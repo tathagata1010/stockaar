@@ -11,6 +11,13 @@ import { AppShell } from "@/components/shell/AppShell";
 
 export const revalidate = 600;
 
+export const metadata = {
+  title: "Earnings Calendar — Upcoming Indian Results",
+  description: "Upcoming earnings, dividends, splits, and corporate actions for NSE and BSE listed companies.",
+  alternates: { canonical: "/calendar" },
+  keywords: ["earnings calendar India", "results calendar NSE", "dividend dates India"],
+};
+
 type EarningsRow = UniverseRow & { earningsDate: number };
 
 function startOfWeekIST(d: Date): Date {

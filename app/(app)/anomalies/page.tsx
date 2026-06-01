@@ -8,6 +8,13 @@ import { Zap, ArrowUp, ArrowDown, TrendingUp, TrendingDown, Calendar } from "luc
 
 export const revalidate = 300;
 
+export const metadata = {
+  title: "Market Anomalies — Volume Spikes & 52W Highs",
+  description: "Unusual moves on NSE and BSE today: volume spikes, gap-ups, gap-downs, 52-week highs and lows. Catch market anomalies in real time.",
+  alternates: { canonical: "/anomalies" },
+  keywords: ["volume spike stocks", "52 week high NSE", "stock anomalies India", "unusual stock activity"],
+};
+
 type AnomalyKind = "gap-up" | "gap-down" | "new-high" | "new-low" | "earnings-soon";
 type AnomalyRow = UniverseRow & { kinds: AnomalyKind[] };
 

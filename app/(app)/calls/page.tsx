@@ -9,6 +9,13 @@ import { AppShell } from "@/components/shell/AppShell";
 
 export const revalidate = 300;
 
+export const metadata = {
+  title: "Stock Calls — Buy, Hold, Sell Signals",
+  description: "Algorithmic Buy / Hold / Sell signals on Indian stocks with transparent reasoning. Updated through the trading day.",
+  alternates: { canonical: "/calls" },
+  keywords: ["buy sell signals India", "stock calls NSE", "stock recommendations India"],
+};
+
 export default function CallsPage({ searchParams }: { searchParams: { tab?: string } }) {
   const tab = (searchParams.tab ?? "ALL").toUpperCase();
   return (

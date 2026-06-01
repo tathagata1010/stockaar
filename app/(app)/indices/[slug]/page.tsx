@@ -22,7 +22,24 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const idx = findIndexBySlug(params.slug);
-  return { title: idx ? `${idx.name} · Live · Stocksbrew` : "Index" };
+  if (!idx) return { title: "Index" };
+  const title = `${idx.name} Live Index · Price, Chart, Movers`;
+  const description = `Live ${idx.name} index price, intraday chart, 1D–5Y returns, top gainers and losers, and related news. Updated every minute during Indian market hours.`;
+  const url = `/indices/${idx.slug}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: "website" },
+    twitter: { card: "summary_large_image", title, description },
+    keywords: [
+      `${idx.name} live`,
+      `${idx.name} today`,
+      `${idx.name} chart`,
+      `${idx.name} index`,
+      `${idx.name} movers`,
+    ],
+  };
 }
 
 export default function IndexDetailPage({ params }: { params: { slug: string } }) {
