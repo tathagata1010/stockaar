@@ -5,8 +5,10 @@
 // `pdf_url`. This module downloads the PDF and runs pdf-parse to get the text.
 // Image-based PDFs (scanned transcripts) return little/no text — those filings
 // will be marked `skipped` and would need OCR (phase 3 follow-up).
-
-import { PDFParse } from "pdf-parse";
+//
+// pdf-parse is lazy-imported because pdfjs-dist references browser globals
+// (DOMMatrix, Path2D) at module load. Eager import would crash any server
+// route that transitively imports this file (e.g. the /guidance read page).
 
 const PDF_HEADERS: Record<string, string> = {
   "User-Agent":
@@ -39,6 +41,7 @@ export async function fetchPdfText(url: string): Promise<string | null> {
       console.warn(`[pdf] too large ${buf.byteLength}B ${url}`);
       return null;
     }
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: new Uint8Array(buf) });
     try {
       const out = await parser.getText();
