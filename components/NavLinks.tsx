@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { useDismiss } from "@/lib/hooks/useDismiss";
 import {
   LayoutDashboard, Star, Flame, Target, Filter, Zap, Bell,
   Newspaper, Layers3, CalendarDays, Wrench, GraduationCap, ChevronDown,
-  Briefcase, ShoppingCart, Activity,
+  Briefcase, ShoppingCart, Activity, Sparkles,
 } from "lucide-react";
 
 export const PRIMARY = [
@@ -20,6 +21,7 @@ export const PRIMARY = [
 ];
 
 export const DISCOVER = [
+  { href: "/guidance", label: "Guidance", icon: Sparkles, desc: "What management just guided" },
   { href: "/trending", label: "Trending", icon: Flame, desc: "What Reddit is buzzing about" },
   { href: "/sectors", label: "Sectors", icon: Layers3, desc: "Live sector performance" },
   { href: "/anomalies", label: "Anomalies", icon: Zap, desc: "Unusual market moves" },
@@ -33,8 +35,6 @@ export const TOOLS = [
   { href: "/tools/rsi", label: "RSI Scanner", icon: Activity, desc: "Overbought / oversold" },
   { href: "/learn", label: "Learn Hub", icon: GraduationCap, desc: "Investing guides" },
 ];
-
-export const RIGHT: { href: string; label: string; icon: typeof LayoutDashboard }[] = [];
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -57,7 +57,6 @@ export function NavLinks() {
         active={TOOLS.some((i) => isActive(pathname, i.href))}
         pathname={pathname}
       />
-      {RIGHT.map((l) => <NavItem key={l.href} {...l} active={isActive(pathname, l.href)} />)}
     </div>
   );
 }
@@ -96,19 +95,8 @@ function Dropdown({
 
   useEffect(() => { setOpen(false); }, [pathname]);
 
-  useEffect(() => {
-    if (!open) return;
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(ref, open, close);
 
   return (
     <div ref={ref} className="relative">

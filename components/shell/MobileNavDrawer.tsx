@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRIMARY, DISCOVER, TOOLS, RIGHT } from "@/components/NavLinks";
+import { PRIMARY, DISCOVER, TOOLS } from "@/components/NavLinks";
 import { signOut } from "@/app/auth/actions";
 
 function isActive(pathname: string, href: string) {
@@ -58,7 +58,6 @@ export function MobileNavDrawer({ email, onClose }: { email: string; onClose: ()
           <NavGroup label="Main" items={PRIMARY} pathname={pathname} />
           <NavGroup label="Discover" items={DISCOVER} pathname={pathname} />
           <NavGroup label="Tools" items={TOOLS} pathname={pathname} />
-          <NavGroup label="Account" items={RIGHT} pathname={pathname} />
 
           <div className="mt-6 rounded-xl border border-border bg-bg/40 p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted">Signed in as</div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllArticles, getArticle } from "@/lib/learn";
 import { Disclaimer } from "@/components/Disclaimer";
+import { siteUrl } from "@/lib/seo";
 import { ArrowLeft, Clock, Calendar } from "lucide-react";
 
 export const revalidate = 3600;
@@ -43,7 +44,7 @@ export default async function LearnArticlePage({ params }: { params: { slug: str
     catch { return s; }
   };
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://stockaar.vercel.app";
+  const site = siteUrl();
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -54,9 +55,9 @@ export default async function LearnArticlePage({ params }: { params: { slug: str
     publisher: {
       "@type": "Organization",
       name: "stocकaar",
-      logo: { "@type": "ImageObject", url: `${siteUrl}/icon.svg` },
+      logo: { "@type": "ImageObject", url: `${site}/icon.svg` },
     },
-    mainEntityOfPage: `${siteUrl}/learn/${article.slug}`,
+    mainEntityOfPage: `${site}/learn/${article.slug}`,
     articleSection: article.category,
   };
 

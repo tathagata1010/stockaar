@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
+import { siteUrl } from "@/lib/seo";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_URL = siteUrl();
 const DESCRIPTION =
   "Live NSE & BSE stock prices, scorecards, screener, hot stocks, market anomalies, and AI briefs for Indian retail investors. Track Nifty 50, Sensex, Bank Nifty in real time.";
 
@@ -73,7 +74,7 @@ const noFlashScript = `
 })();
 `.trim();
 
-const organizationJsonLd = {
+const organizationJsonLdStr = JSON.stringify({
   "@context": "https://schema.org",
   "@type": "Organization",
   name: APP_NAME,
@@ -81,9 +82,9 @@ const organizationJsonLd = {
   logo: `${SITE_URL}/icon.svg`,
   description: DESCRIPTION,
   sameAs: [] as string[],
-};
+});
 
-const websiteJsonLd = {
+const websiteJsonLdStr = JSON.stringify({
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: APP_NAME,
@@ -93,7 +94,7 @@ const websiteJsonLd = {
     target: `${SITE_URL}/stock/{search_term_string}`,
     "query-input": "required name=search_term_string",
   },
-};
+});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -102,11 +103,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: organizationJsonLdStr }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: websiteJsonLdStr }}
         />
       </head>
       <body>{children}</body>

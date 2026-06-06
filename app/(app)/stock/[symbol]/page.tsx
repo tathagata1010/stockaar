@@ -6,6 +6,7 @@ import { getFundamentals } from "@/lib/fundamentals";
 import { buildScorecard } from "@/lib/scorecard";
 import { NSE_SYMBOLS } from "@/lib/nse-symbols";
 import { formatINR, cn } from "@/lib/utils";
+import { siteUrl } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import { AddStockDetailButton } from "@/components/AddStockDetailButton";
 import { PriceChart } from "@/components/PriceChart";
@@ -113,15 +114,15 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
     { id: "analyst", label: "Analyst", icon: <Users className="h-3.5 w-3.5" /> },
   ];
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://stockaar.vercel.app";
+  const site = siteUrl();
   const jsonLd = [
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
-        { "@type": "ListItem", position: 2, name: "Stocks", item: `${siteUrl}/dashboard` },
-        { "@type": "ListItem", position: 3, name: symbol, item: `${siteUrl}/stock/${symbol}` },
+        { "@type": "ListItem", position: 1, name: "Home", item: site },
+        { "@type": "ListItem", position: 2, name: "Stocks", item: `${site}/dashboard` },
+        { "@type": "ListItem", position: 3, name: symbol, item: `${site}/stock/${symbol}` },
       ],
     },
     {
@@ -129,7 +130,7 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
       "@type": "FinancialProduct",
       name: `${meta.name} (${symbol})`,
       description: `${meta.name} share price and analysis on ${meta.exchange}.`,
-      url: `${siteUrl}/stock/${symbol}`,
+      url: `${site}/stock/${symbol}`,
       category: meta.sector,
       provider: { "@type": "Organization", name: "stocकaar" },
     },

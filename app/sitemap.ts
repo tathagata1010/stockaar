@@ -2,8 +2,9 @@ import type { MetadataRoute } from "next";
 import { NSE_SYMBOLS } from "@/lib/nse-symbols";
 import { INDICES } from "@/lib/market";
 import { getAllArticles } from "@/lib/learn";
+import { siteUrl } from "@/lib/seo";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://stockaar.vercel.app";
+const SITE_URL = siteUrl();
 
 const STATIC_ROUTES: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
   { path: "/", changeFrequency: "daily", priority: 1.0 },

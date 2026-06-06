@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { NSE_SYMBOLS, type SymbolEntry } from "@/lib/nse-symbols";
 import { INDICES } from "@/lib/market";
 import { cn } from "@/lib/utils";
+import { useDismiss } from "@/lib/hooks/useDismiss";
 
 type Result =
   | { kind: "stock"; symbol: string; name: string; sector: string; exchange: "NSE" | "BSE" }
@@ -70,13 +71,8 @@ export function StockSearch({ compact = false }: { compact?: boolean }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(boxRef, open, close, { escape: false });
 
   useEffect(() => { setActive(0); }, [q]);
 
