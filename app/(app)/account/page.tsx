@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 const PRO_PAUSED = true;
 
 export default async function AccountPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 

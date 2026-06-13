@@ -14,11 +14,12 @@ export async function generateStaticParams() {
   return ALL_SECTORS.map((s) => ({ sector: s }));
 }
 
-export default function SectorDetailPage({
-  params,
-}: {
-  params: { sector: string };
-}) {
+export default async function SectorDetailPage(
+  props: {
+    params: Promise<{ sector: string }>;
+  }
+) {
+  const params = await props.params;
   const decoded = decodeURIComponent(params.sector) as Sector;
   if (!ALL_SECTORS.includes(decoded)) notFound();
 

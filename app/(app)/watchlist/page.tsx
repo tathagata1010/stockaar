@@ -48,7 +48,7 @@ export default function WatchlistPage() {
 }
 
 const loadCore = cache(async () => {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const [{ data: items }, { data: profile }] = await Promise.all([
     supabase.from("watchlist_items").select("*").order("added_at", { ascending: false }),

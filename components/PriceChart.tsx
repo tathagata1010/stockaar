@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { cn, formatINR, formatPct } from "@/lib/utils";
+import { CHART_COLORS } from "@/lib/chart-theme";
+import { useChartTheme } from "@/lib/hooks/useChartTheme";
 
 const RANGES = [
   { key: "1d",  label: "1D" },
@@ -59,8 +61,10 @@ export function PriceChart({
     return { open, last, change, changePct: open ? (change / open) * 100 : 0, up: change >= 0 };
   }, [points, prevClose, range]);
 
-  const stroke = up ? "#22c55e" : "#ef4444";
-  const gradId = `grad-${up ? "u" : "d"}`;
+  const stroke = up ? CHART_COLORS.accent : CHART_COLORS.danger;
+  const reactId = useId();
+  const gradId = `grad-${reactId}-${up ? "u" : "d"}`;
+  const { colors, tooltipStyle, itemStyle, labelStyle } = useChartTheme();
 
   return (
     <div className="rounded-lg border border-border bg-card p-3 sm:p-5">
@@ -110,7 +114,7 @@ export function PriceChart({
                 type="number"
                 domain={["dataMin", "dataMax"]}
                 tickFormatter={(t: number) => formatTick(t, range)}
-                stroke="#737373"
+                stroke={colors.axis}
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -118,7 +122,7 @@ export function PriceChart({
               />
               <YAxis
                 domain={["auto", "auto"]}
-                stroke="#737373"
+                stroke={colors.axis}
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -127,13 +131,14 @@ export function PriceChart({
                 orientation="right"
               />
               <Tooltip
-                contentStyle={{ background: "#111", border: "1px solid #262626", borderRadius: 6, fontSize: 12 }}
-                labelStyle={{ color: "#737373" }}
+                contentStyle={tooltipStyle}
+                itemStyle={itemStyle}
+                labelStyle={labelStyle}
                 formatter={(v: number) => [formatINR(v), "Price"]}
                 labelFormatter={(t: number | string) => new Date(t as number).toLocaleString("en-IN")}
               />
               {prevClose && range === "1d" && (
-                <ReferenceLine y={prevClose} stroke="#737373" strokeDasharray="3 3" />
+                <ReferenceLine y={prevClose} stroke={colors.axis} strokeDasharray="3 3" />
               )}
               <Area
                 type="monotone"

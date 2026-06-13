@@ -70,7 +70,7 @@ export default function PrivacyPage() {
             <strong>Upstash</strong> (Redis cache), <strong>Razorpay</strong>{" "}
             (payments), <strong>Resend</strong> (email delivery),{" "}
             <strong>NVIDIA NIM</strong> and Anthropic (AI inference), and{" "}
-            <strong>Yahoo Finance</strong> &amp; Upstox (market data). Each
+            <strong>Yahoo Finance</strong> (market data). Each
             processor is contractually bound to confidentiality and security
             obligations.
           </p>

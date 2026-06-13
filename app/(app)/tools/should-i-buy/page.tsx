@@ -63,11 +63,12 @@ function riskFromBeta(beta?: number): { label: string; tone: "accent" | "brand" 
   return { label: "Very High", tone: "danger" };
 }
 
-export default function ShouldIBuyPage({
-  searchParams,
-}: {
-  searchParams: { symbol?: string };
-}) {
+export default async function ShouldIBuyPage(
+  props: {
+    searchParams: Promise<{ symbol?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const symbol = (searchParams.symbol ?? "").toUpperCase().trim();
 
   return (

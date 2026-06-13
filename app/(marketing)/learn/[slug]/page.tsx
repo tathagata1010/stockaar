@@ -12,7 +12,8 @@ export async function generateStaticParams() {
   return all.map((a) => ({ slug: a.slug }));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const a = await getArticle(params.slug);
   if (!a) return {};
   const url = `/learn/${a.slug}`;
@@ -34,7 +35,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function LearnArticlePage({ params }: { params: { slug: string } }) {
+export default async function LearnArticlePage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const article = await getArticle(params.slug);
   if (!article) notFound();
 

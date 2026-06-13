@@ -33,7 +33,8 @@ const CAP_BUCKETS: { value: string; label: string; min: number; max?: number }[]
   { value: "small", label: "Small (<₹10K Cr)",         min: 0,             max: 10_000  * 1e7 },
 ];
 
-export default function ScreenerPage({ searchParams }: { searchParams: SP }) {
+export default async function ScreenerPage(props: { searchParams: Promise<SP> }) {
+  const searchParams = await props.searchParams;
   const industries = allIndustries();
   const sector = (searchParams.sector ?? "all") as Sector | "all";
   const industry = searchParams.industry ?? "all";

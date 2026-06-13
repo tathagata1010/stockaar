@@ -20,7 +20,8 @@ export async function generateStaticParams() {
   return INDICES.map((i) => ({ slug: i.slug }));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const idx = findIndexBySlug(params.slug);
   if (!idx) return { title: "Index" };
   const title = `${idx.name} Live Index · Price, Chart, Movers`;
@@ -42,7 +43,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default function IndexDetailPage({ params }: { params: { slug: string } }) {
+export default async function IndexDetailPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const meta = findIndexBySlug(params.slug);
   if (!meta) notFound();
 

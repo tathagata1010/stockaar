@@ -3,6 +3,9 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getQuote } from "@/lib/upstox";
 import { getFundamentals } from "@/lib/fundamentals";
+import { fetchBrokerReports } from "@/lib/trendlyne-brokers";
+import { getShareholdingTimeline } from "@/lib/xbrl-shp";
+import { fetchYahooHistory } from "@/lib/history";
 import { buildScorecard } from "@/lib/scorecard";
 import { NSE_SYMBOLS } from "@/lib/nse-symbols";
 import { formatINR, cn } from "@/lib/utils";
@@ -17,6 +20,7 @@ import { KeyStats } from "@/components/KeyStats";
 import { WhyCareToday } from "@/components/WhyCareToday";
 import { AnalystRatings } from "@/components/AnalystRatings";
 import { Financials } from "@/components/Financials";
+import { Shareholding } from "@/components/Shareholding";
 import { AIBrief } from "@/components/AIBrief";
 import { Disclaimer } from "@/components/Disclaimer";
 import { StockLogo } from "@/components/StockLogo";
@@ -27,7 +31,7 @@ import { NewsSection } from "@/components/NewsSection";
 import { getAIBrief } from "@/lib/ai-brief";
 import {
   LineChart, Activity, Award, BarChart3, Sparkles, Building2, Users,
-  Bell, Newspaper,
+  Bell, Newspaper, PieChart,
 } from "lucide-react";
 
 export const revalidate = 60;
@@ -37,7 +41,8 @@ export async function generateStaticParams() {
   return NSE_SYMBOLS.slice(0, 100).map((s) => ({ symbol: s.symbol }));
 }
 
-export async function generateMetadata({ params }: { params: { symbol: string } }) {
+export async function generateMetadata(props: { params: Promise<{ symbol: string }> }) {
+  const params = await props.params;
   const symbol = params.symbol.toUpperCase();
   const meta = NSE_SYMBOLS.find((s) => s.symbol === symbol);
   if (!meta) return { title: symbol };
@@ -61,7 +66,8 @@ export async function generateMetadata({ params }: { params: { symbol: string } 
   };
 }
 
-export default function StockDetailPage({ params }: { params: { symbol: string } }) {
+export default async function StockDetailPage(props: { params: Promise<{ symbol: string }> }) {
+  const params = await props.params;
   const symbol = params.symbol.toUpperCase();
   const meta = NSE_SYMBOLS.find((s) => s.symbol === symbol);
   if (!meta) notFound();
@@ -110,6 +116,7 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
     { id: "news", label: "News", icon: <Newspaper className="h-3.5 w-3.5" /> },
     { id: "scorecard", label: "Scorecard", icon: <Award className="h-3.5 w-3.5" /> },
     { id: "fundamentals", label: "Fundamentals", icon: <BarChart3 className="h-3.5 w-3.5" /> },
+    { id: "shareholding", label: "Shareholding", icon: <PieChart className="h-3.5 w-3.5" /> },
     { id: "financials", label: "Financials", icon: <Building2 className="h-3.5 w-3.5" /> },
     { id: "analyst", label: "Analyst", icon: <Users className="h-3.5 w-3.5" /> },
   ];
@@ -153,9 +160,9 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
 
         <StickySection id="performance">
           <SectionHeader title="Performance" subtitle="Returns across timeframes" />
-          <LazyMount>
-            <PerformanceReturns symbol={symbol} exchange={meta.exchange} />
-          </LazyMount>
+          <Suspense fallback={<SectionSkeleton h={180} />}>
+            <PerformanceSection symbol={symbol} exchange={meta.exchange} />
+          </Suspense>
         </StickySection>
 
         <StickySection id="ai-brief">
@@ -185,6 +192,9 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
         </Suspense>
         <Suspense fallback={<SectionSkeleton />}>
           <FundamentalsSection symbol={symbol} exchange={meta.exchange} />
+        </Suspense>
+        <Suspense fallback={<SectionSkeleton />}>
+          <ShareholdingSection symbol={symbol} exchange={meta.exchange} />
         </Suspense>
         <Suspense fallback={<SectionSkeleton />}>
           <FinancialsSection symbol={symbol} exchange={meta.exchange} />
@@ -221,7 +231,7 @@ function HeroPriceSkeleton() {
 }
 
 async function HeroActions({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let alreadyAdded = false;
   if (user) {
@@ -310,6 +320,22 @@ async function FundamentalsSection({ symbol, exchange }: { symbol: string; excha
   );
 }
 
+async function ShareholdingSection({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
+  // FII/DII/MF/Retail timeline only available for NSE-listed names.
+  const timeline = exchange === "NSE" ? await getShareholdingTimeline(symbol) : null;
+  return (
+    <StickySection id="shareholding">
+      <SectionHeader title="Shareholding" subtitle="Promoter / FII / DII split and quarterly trend" />
+      <Shareholding timeline={timeline} />
+    </StickySection>
+  );
+}
+
+async function PerformanceSection({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
+  const history = await fetchYahooHistory(symbol, exchange, "1y");
+  return <PerformanceReturns points={history?.points ?? []} />;
+}
+
 async function FinancialsSection({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
   const fundamentals = await getFundamentals(symbol, exchange);
   return (
@@ -325,13 +351,19 @@ async function FinancialsSection({ symbol, exchange }: { symbol: string; exchang
 }
 
 async function AnalystSection({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
-  const fundamentals = await getFundamentals(symbol, exchange);
+  const [fundamentals, brokerReports] = await Promise.all([
+    getFundamentals(symbol, exchange),
+    exchange === "NSE" ? fetchBrokerReports(symbol) : Promise.resolve([]),
+  ]);
+  const hasData = (fundamentals?.analystCounts?.buy ?? 0) + (fundamentals?.analystCounts?.strongBuy ?? 0)
+    + (fundamentals?.analystCounts?.hold ?? 0) + (fundamentals?.analystCounts?.sell ?? 0)
+    + (fundamentals?.analystCounts?.strongSell ?? 0) > 0 || brokerReports.length > 0;
   return (
     <StickySection id="analyst">
       <SectionHeader title="Analyst Ratings" subtitle="Street recommendations" />
-      {fundamentals?.analystCounts ? (
+      {hasData ? (
         <LazyMount minHeight={160}>
-          <AnalystRatings f={fundamentals} />
+          <AnalystRatings f={fundamentals} reports={brokerReports} />
         </LazyMount>
       ) : <Empty>No analyst ratings available.</Empty>}
     </StickySection>

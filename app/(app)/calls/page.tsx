@@ -16,7 +16,8 @@ export const metadata = {
   keywords: ["buy sell signals India", "stock calls NSE", "stock recommendations India"],
 };
 
-export default function CallsPage({ searchParams }: { searchParams: { tab?: string } }) {
+export default async function CallsPage(props: { searchParams: Promise<{ tab?: string }> }) {
+  const searchParams = await props.searchParams;
   const tab = (searchParams.tab ?? "ALL").toUpperCase();
   return (
     <AppShell>

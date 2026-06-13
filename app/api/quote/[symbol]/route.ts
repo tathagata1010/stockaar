@@ -3,10 +3,8 @@ import { getQuote } from "@/lib/upstox";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { symbol: string } },
-) {
+export async function GET(req: Request, props: { params: Promise<{ symbol: string }> }) {
+  const params = await props.params;
   const symbol = params.symbol.toUpperCase();
   const url = new URL(req.url);
   const exchange = (url.searchParams.get("exchange") === "BSE" ? "BSE" : "NSE") as "NSE" | "BSE";

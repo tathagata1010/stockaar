@@ -14,7 +14,7 @@ export type UniverseRow = {
   rangePosition: number | null;
 };
 
-const UNIVERSE_KEY = "universe:v3";
+const UNIVERSE_KEY = "universe:v5";
 const SOFT_TTL_MS = 10 * 60 * 1000;
 const HARD_TTL_SEC = 24 * 60 * 60;
 const FUNDAMENTALS_CONCURRENCY = 24;
@@ -42,7 +42,7 @@ function buildRowFromParts(
 }
 
 async function rebuild(): Promise<UniverseRow[]> {
-  // 1. Bulk-fetch ALL quotes in one go (mget + bulk Upstox/Yahoo).
+  // 1. Bulk-fetch ALL quotes in one go (mget + Yahoo v7 bulk).
   const quotes = await getQuotes(
     NSE_SYMBOLS.map((s) => ({ symbol: s.symbol, exchange: s.exchange })),
   ).catch(() => [] as Quote[]);
@@ -53,14 +53,13 @@ async function rebuild(): Promise<UniverseRow[]> {
   const rows: UniverseRow[] = new Array(NSE_SYMBOLS.length);
   for (let i = 0; i < NSE_SYMBOLS.length; i += FUNDAMENTALS_CONCURRENCY) {
     const batch = NSE_SYMBOLS.slice(i, i + FUNDAMENTALS_CONCURRENCY);
-    const out = await Promise.all(
+    await Promise.all(
       batch.map(async (entry, j) => {
         const fundamentals = await getFundamentals(entry.symbol, entry.exchange).catch(() => null);
         const quote = quoteBy.get(`${entry.exchange}:${entry.symbol}`) ?? null;
         rows[i + j] = buildRowFromParts(entry, quote, fundamentals);
       }),
     );
-    void out;
   }
 
   const envelope: Envelope = { builtAt: Date.now(), rows };

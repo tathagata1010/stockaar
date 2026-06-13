@@ -1,18 +1,12 @@
 import { cn } from "@/lib/utils";
 import type { Scorecard } from "@/lib/scorecard";
+import { ScorecardRadar } from "@/components/charts/ScorecardRadar";
 
 function scoreColor(score: number): string {
   if (score >= 70) return "text-accent";
   if (score >= 50) return "text-fg";
   if (score >= 35) return "text-amber-400";
   return "text-danger";
-}
-
-function scoreBg(score: number): string {
-  if (score >= 70) return "bg-accent";
-  if (score >= 50) return "bg-fg";
-  if (score >= 35) return "bg-amber-400";
-  return "bg-danger";
 }
 
 function scoreLabel(score: number): string {
@@ -38,12 +32,14 @@ export function ScorecardView({ scorecard }: { scorecard: Scorecard }) {
     scorecard.pillars.momentum,
   ];
   const r = ring(scorecard.composite);
+
   return (
     <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Scorecard</h3>
         <span className="text-xs text-muted">Composite of 4 pillars · 0–100</span>
       </div>
+
       <div className="mt-4 grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
         <div className="flex items-center gap-4">
           <svg width="96" height="96" viewBox="0 0 96 96" className="-rotate-90">
@@ -67,25 +63,22 @@ export function ScorecardView({ scorecard }: { scorecard: Scorecard }) {
             <div className="text-xs text-muted">{scoreLabel(scorecard.composite)}</div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {pillars.map((p) => (
-            <div key={p.name} className="rounded-md border border-border bg-bg/40 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase text-muted">{p.name}</span>
-                <span className={cn("text-sm font-bold tabular-nums", scoreColor(p.score))}>{p.score}</span>
-              </div>
-              <div className="mt-2 h-1.5 rounded-full bg-border">
-                <div
-                  className={cn("h-full rounded-full", scoreBg(p.score))}
-                  style={{ width: `${p.score}%` }}
-                />
-              </div>
-              {p.notes[0] && (
-                <div className="mt-2 text-[11px] leading-snug text-muted">{p.notes[0]}</div>
-              )}
+
+        <ScorecardRadar pillars={pillars} />
+      </div>
+
+      <div className="mt-5 grid gap-2 border-t border-border/60 pt-4 sm:grid-cols-2">
+        {pillars.map((p) => (
+          <div key={p.name} className="flex items-start gap-2 text-xs">
+            <span className={cn("mt-0.5 inline-block min-w-[2.25rem] text-right font-bold tabular-nums", scoreColor(p.score))}>
+              {p.score}
+            </span>
+            <div className="min-w-0">
+              <div className="text-fg">{p.name}</div>
+              {p.notes[0] && <div className="text-muted">{p.notes[0]}</div>}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </section>
   );

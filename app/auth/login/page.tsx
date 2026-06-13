@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { signIn, signInWithGoogle, type AuthState } from "../actions";
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState<AuthState, FormData>(signIn, null);
+  const [state, formAction] = useActionState<AuthState, FormData>(signIn, null);
 
   return (
     <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6">
@@ -16,6 +17,7 @@ export default function LoginPage() {
       <form action={signInWithGoogle} className="mt-8">
         <button
           type="submit"
+          suppressHydrationWarning
           className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card py-2.5 text-sm font-medium hover:border-accent"
         >
           <GoogleMark />
@@ -32,6 +34,7 @@ export default function LoginPage() {
           <label htmlFor="email" className="block text-sm font-medium">Email</label>
           <input
             id="email" name="email" type="email" required autoComplete="email"
+            suppressHydrationWarning
             className="mt-1 w-full rounded-md border border-border bg-card px-3 py-2 outline-none focus:border-accent"
           />
         </div>
@@ -39,6 +42,7 @@ export default function LoginPage() {
           <label htmlFor="password" className="block text-sm font-medium">Password</label>
           <input
             id="password" name="password" type="password" required autoComplete="current-password"
+            suppressHydrationWarning
             className="mt-1 w-full rounded-md border border-border bg-card px-3 py-2 outline-none focus:border-accent"
           />
         </div>
@@ -65,6 +69,7 @@ function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: st
     <button
       type="submit"
       disabled={pending}
+      suppressHydrationWarning
       className="w-full rounded-md bg-brand py-2 font-medium text-brand-fg disabled:opacity-60"
     >
       {pending ? pendingLabel : label}

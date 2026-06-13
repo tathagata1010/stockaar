@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 // Debug endpoint — shows user state for diagnosing watchlist issues.
 // Visit /api/watchlist/debug while logged in.
 export async function GET() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "not logged in" });
 

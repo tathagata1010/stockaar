@@ -55,9 +55,9 @@ export default function DisclaimerPage() {
         <section>
           <h2>Data accuracy &amp; delays</h2>
           <p>
-            Prices and fundamentals are sourced from third parties (Upstox,
-            Yahoo Finance and others). Live quotes may be delayed up to ~15
-            minutes when our primary feed is unavailable. Corporate actions,
+            Prices and fundamentals are sourced from third parties (Yahoo
+            Finance and others). Quotes are delayed approximately 15 minutes.
+            Corporate actions,
             splits and dividends may take additional time to reflect. We do
             not guarantee accuracy, completeness or timeliness of any data.
           </p>

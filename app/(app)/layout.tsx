@@ -8,7 +8,7 @@ import { NavProgress } from "@/components/NavProgress";
 import { PageTransition } from "@/components/anim/PageTransition";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) redirect("/auth/login");
   const user = session.user;

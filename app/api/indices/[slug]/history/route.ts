@@ -13,10 +13,8 @@ const RANGE_MAP: Record<string, { range: string; interval: string }> = {
 
 export const revalidate = 60;
 
-export async function GET(
-  request: Request,
-  { params }: { params: { slug: string } },
-) {
+export async function GET(request: Request, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const idx = findIndexBySlug(params.slug);
   if (!idx) return NextResponse.json({ error: "Unknown index" }, { status: 404 });
 

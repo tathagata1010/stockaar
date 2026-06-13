@@ -37,22 +37,37 @@ export type Fundamentals = {
   earningsDate?: number;
   analystRecommendation?: number;
   analystCounts?: AnalystCounts;
-  source: "yahoo";
   updatedAt: number;
 };
 
 const CACHE_TTL_SECONDS = 60 * 60 * 6;
+// Yahoo doesn't recognize every NSE symbol (delistings, NSE-only IPOs that
+// haven't reached Yahoo's coverage yet). Once we see a 404, remember it for a
+// day so we stop re-asking on every page load.
+const NEGATIVE_CACHE_TTL_SECONDS = 60 * 60 * 24;
+
+function fundamentalsKey(symbol: string, exchange: string) {
+  return `fundamentals:${exchange}:${symbol}:v4`;
+}
+function notFoundKey(symbol: string, exchange: string) {
+  return `fundamentals:404:${exchange}:${symbol}`;
+}
 
 export const getFundamentals = cache(async (
   symbol: string,
   exchange: "NSE" | "BSE" = "NSE",
 ): Promise<Fundamentals | null> => {
-  const key = `fundamentals:${exchange}:${symbol}`;
+  const key = fundamentalsKey(symbol, exchange);
   const cached = await redis.get<Fundamentals>(key).catch(() => null);
   if (cached) return cached;
 
-  const summary = await fetchYahooQuoteSummary(symbol, exchange);
-  const quote = await fetchYahooQuote(symbol, exchange);
+  const notFound = await redis.get<number>(notFoundKey(symbol, exchange)).catch(() => null);
+  if (notFound) return null;
+
+  const [summary, quote] = await Promise.all([
+    fetchYahooQuoteSummary(symbol, exchange),
+    fetchYahooQuote(symbol, exchange),
+  ]);
   const merged = mergeFundamentals(symbol, exchange, summary, quote);
   if (merged) await redis.set(key, merged, { ex: CACHE_TTL_SECONDS }).catch(() => {});
   return merged;
@@ -94,7 +109,6 @@ function mergeFundamentals(
     earningsDate: pick("earningsDate"),
     analystRecommendation: pick("analystRecommendation"),
     analystCounts: pick("analystCounts"),
-    source: "yahoo",
     updatedAt: Date.now(),
   };
 }
@@ -135,7 +149,6 @@ async function fetchYahooQuote(
       dividendYield: q.trailingAnnualDividendYield ?? q.dividendYield,
       yearHigh: q.fiftyTwoWeekHigh,
       yearLow: q.fiftyTwoWeekLow,
-      analystRecommendation: q.averageAnalystRating ? undefined : undefined,
     };
   } catch (e) {
     console.warn("[yahoo-quote] error", e);
@@ -186,7 +199,14 @@ async function fetchYahooQuoteSummary(
       res = await attempt(true);
     }
     if (!res || !res.ok) {
-      if (res) console.warn("[yahoo-fundamentals] " + res.status + " for " + symbol + suffix);
+      if (res) {
+        console.warn("[yahoo-fundamentals] " + res.status + " for " + symbol + suffix);
+        if (res.status === 404) {
+          redis
+            .set(notFoundKey(symbol, exchange), Date.now(), { ex: NEGATIVE_CACHE_TTL_SECONDS })
+            .catch(() => {});
+        }
+      }
       return null;
     }
     const json = await res.json();

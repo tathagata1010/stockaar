@@ -30,7 +30,6 @@ export function LivePriceHeader({
   }, [symbol, exchange]);
 
   const up = quote.change >= 0;
-  const sourceLabel = quote.source === "upstox" ? "Live" : "Delayed ~15 min";
 
   return (
     <div>
@@ -49,7 +48,7 @@ export function LivePriceHeader({
         </div>
       </div>
       <div className="mt-1 text-xs text-muted">
-        {sourceLabel} · Updated {new Date(quote.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · Auto-refreshes
+        Delayed ~15 min · Updated {new Date(quote.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · Auto-refreshes
       </div>
     </div>
   );

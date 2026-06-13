@@ -3,7 +3,7 @@
 import { useEffect, type RefObject } from "react";
 
 export function useDismiss(
-  ref: RefObject<HTMLElement>,
+  ref: RefObject<HTMLElement | null>,
   open: boolean,
   onDismiss: () => void,
   options: { escape?: boolean } = { escape: true },

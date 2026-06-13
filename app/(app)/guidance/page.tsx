@@ -38,7 +38,8 @@ const CATEGORY_LABEL: Record<string, string> = {
   press_release: "Press release",
 };
 
-export default function GuidancePage({ searchParams }: { searchParams: { dir?: string } }) {
+export default async function GuidancePage(props: { searchParams: Promise<{ dir?: string }> }) {
+  const searchParams = await props.searchParams;
   const dirParam = (searchParams.dir ?? "").toLowerCase();
   const direction = (ALL_DIRECTIONS as string[]).includes(dirParam) ? (dirParam as Direction) : undefined;
 

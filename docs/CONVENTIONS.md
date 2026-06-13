@@ -34,9 +34,9 @@
 - Plan gating: read `profile.plan`, compare against `PLANS[plan].maxX`.
 
 ## Stock Data
-- Always call `getQuote()` / `getQuotes()` from `lib/upstox.ts`. Never `fetch` Upstox directly.
+- Always call `getQuote()` / `getQuotes()` from `lib/upstox.ts` (filename kept for import stability — wraps Yahoo Finance v7 bulk + v8 chart fallback).
 - Quote cache TTL = 60s. Don't change without reason.
-- On Upstox 401 → log, return null, UI shows "data unavailable".
+- On upstream failure → log, return null, UI shows "data unavailable".
 - Symbols are uppercase (`RELIANCE`, not `reliance`).
 
 ## Formatting / i18n

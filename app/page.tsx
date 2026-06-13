@@ -72,7 +72,7 @@ const TESTIMONIALS = [
 ];
 
 const FAQS = [
-  { q: "Where does the data come from?", a: "Live prices from Upstox (NSE/BSE official feed). Fundamentals from Yahoo Finance v10. Refreshed every 60 seconds, cached server-side so the app stays snappy." },
+  { q: "Where does the data come from?", a: "Prices and fundamentals from Yahoo Finance (NSE/BSE, ~15-min delay). Refreshed every 60 seconds, cached server-side so the app stays snappy." },
   { q: "Is this SEBI registered?", a: "We provide market data and analytics — not buy/sell recommendations. Nothing on the platform is investment advice. Read our Disclaimer before acting on any view." },
   { q: "Can I cancel anytime?", a: "Yes. One-click cancel from Account → Billing. Your Pro features stay active until the end of the current billing cycle." },
   { q: "Do you support BSE-only stocks?", a: "Yes. Search supports both exchanges. NSE is preferred when both are listed (better depth). You can add either to your watchlist." },

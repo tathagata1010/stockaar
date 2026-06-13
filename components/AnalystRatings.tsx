@@ -1,53 +1,107 @@
-import { cn } from "@/lib/utils";
 import type { Fundamentals } from "@/lib/fundamentals";
+import type { BrokerReport, BrokerAction } from "@/lib/trendlyne-brokers";
+import { AnalystRatingsDonut } from "@/components/charts/AnalystRatingsDonut";
+import { cn, formatINR } from "@/lib/utils";
 
-const ROWS: { key: keyof NonNullable<Fundamentals["analystCounts"]>; label: string; color: string }[] = [
-  { key: "strongBuy", label: "Strong Buy", color: "bg-accent" },
-  { key: "buy", label: "Buy", color: "bg-accent/60" },
-  { key: "hold", label: "Hold", color: "bg-muted/60" },
-  { key: "sell", label: "Sell", color: "bg-danger/60" },
-  { key: "strongSell", label: "Strong Sell", color: "bg-danger" },
-];
+const BADGE_CLS: Record<BrokerAction, string> = {
+  Buy:        "bg-accent/15 text-accent ring-accent/30",
+  Accumulate: "bg-accent/15 text-accent ring-accent/30",
+  Sell:       "bg-danger/15 text-danger ring-danger/30",
+  Reduce:     "bg-danger/15 text-danger ring-danger/30",
+  Hold:       "bg-muted/10 text-muted ring-border",
+  Neutral:    "bg-muted/10 text-muted ring-border",
+  Other:      "bg-muted/10 text-muted ring-border",
+};
 
-function consensusLabel(mean?: number): string {
-  if (!mean) return "—";
-  if (mean < 1.5) return "Strong Buy";
-  if (mean < 2.5) return "Buy";
-  if (mean < 3.5) return "Hold";
-  if (mean < 4.5) return "Sell";
-  return "Strong Sell";
-}
+export function AnalystRatings({
+  f,
+  reports = [],
+}: {
+  f?: Fundamentals | null;
+  reports?: BrokerReport[];
+}) {
+  const counts = f?.analystCounts;
+  const total = counts ? counts.strongBuy + counts.buy + counts.hold + counts.sell + counts.strongSell : 0;
+  if (total === 0 && reports.length === 0) return null;
 
-export function AnalystRatings({ f }: { f: Fundamentals }) {
-  const counts = f.analystCounts;
-  if (!counts) return null;
-  const total = counts.strongBuy + counts.buy + counts.hold + counts.sell + counts.strongSell;
-  if (total === 0) return null;
+  const buyish = reports.filter((r) => r.action === "Buy" || r.action === "Accumulate").length;
+  const sellish = reports.filter((r) => r.action === "Sell" || r.action === "Reduce").length;
+  const latestTarget = reports.find((r) => r.target != null)?.target;
 
   return (
     <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Analyst Ratings</h3>
-        <span className="text-xs text-muted">
-          Consensus: <span className="font-medium text-fg">{consensusLabel(f.analystRecommendation)}</span>
-          {" "}· {total} analyst{total === 1 ? "" : "s"}
-        </span>
-      </div>
-      <div className="mt-4 space-y-2">
-        {ROWS.map((row) => {
-          const c = counts[row.key];
-          const pct = total > 0 ? (c / total) * 100 : 0;
-          return (
-            <div key={row.key} className="flex items-center gap-3">
-              <span className="w-20 shrink-0 text-xs text-muted sm:w-24">{row.label}</span>
-              <div className="flex-1 h-2 rounded-full bg-border">
-                <div className={cn("h-full rounded-full", row.color)} style={{ width: `${pct}%` }} />
+      {total > 0 && counts && (
+        <AnalystRatingsDonut counts={counts} recommendation={f?.analystRecommendation} />
+      )}
+
+      {reports.length > 0 && (
+        <details className={cn("group", total > 0 && "mt-5 border-t border-border/60 pt-4")}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <h4 className="text-sm font-semibold text-fg">Broker reports</h4>
+              <span className="rounded-full bg-muted/10 px-2 py-0.5 text-[11px] font-medium text-muted ring-1 ring-border">
+                {reports.length}
+              </span>
+              <div className="hidden flex-1 items-center gap-3 text-xs text-muted sm:flex">
+                {buyish > 0 && <span><span className="font-medium text-accent">{buyish}</span> buy</span>}
+                {sellish > 0 && <span><span className="font-medium text-danger">{sellish}</span> sell</span>}
+                {latestTarget != null && (
+                  <span>
+                    Latest target <span className="font-medium tabular-nums text-fg">{formatINR(latestTarget)}</span>
+                  </span>
+                )}
               </div>
-              <span className="w-8 text-right text-xs font-medium tabular-nums">{c}</span>
             </div>
-          );
-        })}
-      </div>
+            <span
+              aria-hidden
+              className="text-muted transition-transform group-open:rotate-180"
+            >
+              ▾
+            </span>
+          </summary>
+
+          <ul className="mt-3 divide-y divide-border/60">
+            {reports.map((r, i) => (
+              <li
+                key={`${r.url}-${i}`}
+                className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-2.5 text-sm sm:grid-cols-[1fr_auto_auto_auto]"
+              >
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-w-0 truncate font-medium hover:text-brand"
+                  title={r.title || r.firm}
+                >
+                  {r.firm}
+                </a>
+                <span className={cn(
+                  "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1",
+                  BADGE_CLS[r.action],
+                )}>
+                  {r.action}
+                </span>
+                <span className="tabular-nums text-xs text-muted sm:text-right">
+                  {r.target != null ? formatINR(r.target) : "—"}
+                </span>
+                <span className="col-span-2 text-xs text-muted sm:col-span-1 sm:text-right tabular-nums">
+                  {formatDate(r.date)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[10px] text-muted">Source: Trendlyne broker reports</p>
+        </details>
+      )}
     </section>
   );
+}
+
+function formatDate(ts: number): string {
+  const d = new Date(ts);
+  const days = Math.floor((Date.now() - ts) / (1000 * 60 * 60 * 24));
+  if (days < 1) return "today";
+  if (days < 7) return `${days}d ago`;
+  if (days < 60) return `${Math.floor(days / 7)}w ago`;
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
 }
