@@ -6,6 +6,7 @@ import { StickyScrollLayout, StickySection, type StickySection as TS } from "@/c
 import { LazyMount } from "@/components/LazyMount";
 import { Zap, ArrowUp, ArrowDown, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export const metadata = {

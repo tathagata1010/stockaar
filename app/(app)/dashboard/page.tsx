@@ -8,6 +8,7 @@ import { StockLogo } from "@/components/StockLogo";
 import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Circle } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export const metadata = {

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Calendar, Rocket, Clock } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 600;
 
 export const metadata = {
