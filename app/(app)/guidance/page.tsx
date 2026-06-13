@@ -5,6 +5,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { Sparkles, TrendingUp, TrendingDown, Minus, Shuffle, ExternalLink, Clock, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 120;
 
 export const metadata = {

@@ -7,6 +7,7 @@ import { cn, formatINR, formatPct, formatCompactINR } from "@/lib/utils";
 import { Gauge, Sparkles, ShieldCheck, Clock, Target, ArrowUpRight, ArrowDownRight, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 function num(v: unknown): number | null {

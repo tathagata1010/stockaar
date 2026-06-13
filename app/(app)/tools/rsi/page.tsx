@@ -9,6 +9,7 @@ import { cn, formatINR, formatPct } from "@/lib/utils";
 import { Activity, Gauge, TrendingDown, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 900;
 
 type RsiRow = {
