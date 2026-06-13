@@ -34,11 +34,13 @@ import {
   Bell, Newspaper, PieChart,
 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export async function generateStaticParams() {
-  // Pre-render top tickers for instant nav. Others use ISR on-demand.
-  return NSE_SYMBOLS.slice(0, 100).map((s) => ({ symbol: s.symbol }));
+  // No build-time prerender — page is force-dynamic. Returning [] avoids
+  // fanning out to 100 symbols × ~10 upstream fetches at build time.
+  return [];
 }
 
 export async function generateMetadata(props: { params: Promise<{ symbol: string }> }) {
