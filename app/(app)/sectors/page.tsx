@@ -6,6 +6,7 @@ import { cn, formatCompactINR, formatPct } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight, Layers, TrendingUp, TrendingDown, Sparkles, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export const metadata = {

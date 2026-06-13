@@ -6,6 +6,7 @@ import { StockLogo } from "@/components/StockLogo";
 import { Skeleton } from "@/components/Skeleton";
 import { AppShell } from "@/components/shell/AppShell";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export const metadata = {

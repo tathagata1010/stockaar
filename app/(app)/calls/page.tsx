@@ -7,6 +7,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { CallsGridLazy } from "@/components/CallsGridLazy";
 import { AppShell } from "@/components/shell/AppShell";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export const metadata = {

@@ -8,6 +8,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { cn, formatCompactINR, formatPct } from "@/lib/utils";
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown } from "lucide-react";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export async function generateStaticParams() {
