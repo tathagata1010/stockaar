@@ -10,6 +10,9 @@ import { NSE_SYMBOLS_LITE as NSE_SYMBOLS } from "@/lib/nse-symbols-lite";
 import { isMarketOpen } from "@/lib/constants";
 import { Trash2 } from "lucide-react";
 import { FlashNumber } from "@/components/anim/FlashNumber";
+import { FreshBadge } from "@/components/FreshBadge";
+import { markSnapshot } from "@/lib/visit-local";
+import { EmptyWatchlist } from "@/components/empty/EmptyWatchlist";
 
 type Item = { id: string; symbol: string; exchange: "NSE" | "BSE"; added_at: string };
 
@@ -28,6 +31,13 @@ export function WatchlistTable({
   useEffect(() => {
     setQuotes(initialQuotes);
   }, [initialQuotes]);
+
+  useEffect(() => {
+    const rows = Object.values(quotes)
+      .filter((q) => Number.isFinite(q.lastPrice) && q.lastPrice > 0)
+      .map((q) => ({ symbol: `${q.exchange}:${q.symbol}`, price: q.lastPrice }));
+    if (rows.length > 0) markSnapshot(rows);
+  }, [quotes]);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -64,11 +74,7 @@ export function WatchlistTable({
   }, [items]);
 
   if (items.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-card p-12 text-center">
-        <p className="text-muted">No stocks yet. Add one to get started.</p>
-      </div>
-    );
+    return <EmptyWatchlist />;
   }
 
   async function remove(id: string) {
@@ -104,7 +110,12 @@ export function WatchlistTable({
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums">
-                  {q ? <FlashNumber value={q.lastPrice} format={(n) => formatINR(n)} /> : <span className="text-muted">—</span>}
+                  {q ? (
+                    <span className="inline-flex items-center justify-end gap-1.5">
+                      <FlashNumber value={q.lastPrice} format={(n) => formatINR(n)} />
+                      <FreshBadge symbol={q.symbol} exchange={q.exchange} price={q.lastPrice} />
+                    </span>
+                  ) : <span className="text-muted">—</span>}
                 </td>
                 <td className={cn(
                   "px-4 py-3 text-right",

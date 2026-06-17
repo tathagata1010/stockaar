@@ -25,8 +25,8 @@ export default function ContactPage() {
         <ContactCard
           icon={<Mail className="h-5 w-5" />}
           label="Email"
-          value="hello@stockaar.in"
-          href="mailto:hello@stockaar.in"
+          value="stockaarin@gmail.com"
+          href="mailto:stockaarin@gmail.com"
         />
         <ContactCard
           icon={<Twitter className="h-5 w-5" />}

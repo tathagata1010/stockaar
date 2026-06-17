@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { redis } from "./redis";
-import { getYahooCrumb, invalidateYahooCrumb, YAHOO_UA } from "./yahoo-auth";
+import { writeStale, readStale } from "./stale-cache";
+import { fetchFundamentalsFallback } from "./sources";
+import { yahooFetch } from "./yahoo/client";
 
 export type AnalystCounts = {
   strongBuy: number;
@@ -9,6 +11,8 @@ export type AnalystCounts = {
   sell: number;
   strongSell: number;
 };
+
+export type RecommendationTrendEntry = AnalystCounts & { period: string };
 
 export type Fundamentals = {
   symbol: string;
@@ -37,6 +41,11 @@ export type Fundamentals = {
   earningsDate?: number;
   analystRecommendation?: number;
   analystCounts?: AnalystCounts;
+  recommendationTrendHistory?: RecommendationTrendEntry[];
+  targetMeanPrice?: number;
+  targetHighPrice?: number;
+  targetLowPrice?: number;
+  numberOfAnalystOpinions?: number;
   updatedAt: number;
 };
 
@@ -47,7 +56,7 @@ const CACHE_TTL_SECONDS = 60 * 60 * 6;
 const NEGATIVE_CACHE_TTL_SECONDS = 60 * 60 * 24;
 
 function fundamentalsKey(symbol: string, exchange: string) {
-  return `fundamentals:${exchange}:${symbol}:v4`;
+  return `fundamentals:${exchange}:${symbol}:v6`;
 }
 function notFoundKey(symbol: string, exchange: string) {
   return `fundamentals:404:${exchange}:${symbol}`;
@@ -68,9 +77,20 @@ export const getFundamentals = cache(async (
     fetchYahooQuoteSummary(symbol, exchange),
     fetchYahooQuote(symbol, exchange),
   ]);
-  const merged = mergeFundamentals(symbol, exchange, summary, quote);
-  if (merged) await redis.set(key, merged, { ex: CACHE_TTL_SECONDS }).catch(() => {});
-  return merged;
+  let merged = mergeFundamentals(symbol, exchange, summary, quote);
+
+  // If Yahoo gave us nothing useful, try Tickertape before falling back to stale.
+  if (!merged) {
+    const tt = await fetchFundamentalsFallback(symbol, exchange);
+    if (tt) merged = mergeFundamentals(symbol, exchange, tt, null);
+  }
+
+  if (merged) {
+    await redis.set(key, merged, { ex: CACHE_TTL_SECONDS }).catch(() => {});
+    await writeStale(key, merged);
+    return merged;
+  }
+  return readStale<Fundamentals>(key);
 });
 
 function mergeFundamentals(
@@ -109,6 +129,11 @@ function mergeFundamentals(
     earningsDate: pick("earningsDate"),
     analystRecommendation: pick("analystRecommendation"),
     analystCounts: pick("analystCounts"),
+    recommendationTrendHistory: pick("recommendationTrendHistory"),
+    targetMeanPrice: pick("targetMeanPrice"),
+    targetHighPrice: pick("targetHighPrice"),
+    targetLowPrice: pick("targetLowPrice"),
+    numberOfAnalystOpinions: pick("numberOfAnalystOpinions"),
     updatedAt: Date.now(),
   };
 }
@@ -117,38 +142,26 @@ async function fetchYahooQuote(
   symbol: string,
   exchange: "NSE" | "BSE",
 ): Promise<Partial<Fundamentals> | null> {
-  // v7 quote: many key stats, no crumb required in most regions
   const suffix = exchange === "NSE" ? ".NS" : ".BO";
   try {
-    const crumb = await getYahooCrumb();
-    const url = new URL("https://query1.finance.yahoo.com/v7/finance/quote");
-    url.searchParams.set("symbols", symbol + suffix);
-    if (crumb) url.searchParams.set("crumb", crumb.crumb);
-    const res = await fetch(url.toString(), {
-      headers: {
-        "User-Agent": YAHOO_UA,
-        Accept: "application/json",
-        ...(crumb ? { Cookie: crumb.cookie } : {}),
-      },
-      next: { revalidate: 0 },
-    });
-    if (!res.ok) {
-      console.warn("[yahoo-quote] " + res.status + " for " + symbol + suffix);
-      return null;
-    }
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol + suffix)}`;
+    const res = await yahooFetch(url);
+    if (!res || !res.ok) return null;
     const json = await res.json();
     const q = json.quoteResponse?.result?.[0];
     if (!q) return null;
+    const nn = (x: any): number | undefined =>
+      typeof x === "number" && Number.isFinite(x) ? x : undefined;
     return {
-      marketCap: q.marketCap,
-      trailingPE: q.trailingPE,
-      forwardPE: q.forwardPE,
-      trailingEps: q.epsTrailingTwelveMonths,
-      forwardEps: q.epsForward,
-      priceToBook: q.priceToBook,
-      dividendYield: q.trailingAnnualDividendYield ?? q.dividendYield,
-      yearHigh: q.fiftyTwoWeekHigh,
-      yearLow: q.fiftyTwoWeekLow,
+      marketCap: nn(q.marketCap),
+      trailingPE: nn(q.trailingPE),
+      forwardPE: nn(q.forwardPE),
+      trailingEps: nn(q.epsTrailingTwelveMonths),
+      forwardEps: nn(q.epsForward),
+      priceToBook: nn(q.priceToBook),
+      dividendYield: nn(q.trailingAnnualDividendYield ?? q.dividendYield),
+      yearHigh: nn(q.fiftyTwoWeekHigh),
+      yearLow: nn(q.fiftyTwoWeekLow),
     };
   } catch (e) {
     console.warn("[yahoo-quote] error", e);
@@ -170,42 +183,15 @@ async function fetchYahooQuoteSummary(
     "price",
   ].join(",");
 
-  const attempt = async (refresh = false): Promise<Response | null> => {
-    if (refresh) await invalidateYahooCrumb();
-    const crumb = await getYahooCrumb();
-    const url = new URL(
-      `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol + suffix)}`,
-    );
-    url.searchParams.set("modules", modules);
-    if (crumb) url.searchParams.set("crumb", crumb.crumb);
-    try {
-      return await fetch(url.toString(), {
-        headers: {
-          "User-Agent": YAHOO_UA,
-          Accept: "application/json",
-          ...(crumb ? { Cookie: crumb.cookie } : {}),
-        },
-        next: { revalidate: 0 },
-      });
-    } catch (e) {
-      console.warn("[yahoo-fundamentals] fetch error", e);
-      return null;
-    }
-  };
+  const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol + suffix)}?modules=${encodeURIComponent(modules)}`;
 
   try {
-    let res = await attempt(false);
-    if (res && (res.status === 401 || res.status === 403)) {
-      res = await attempt(true);
-    }
+    const res = await yahooFetch(url);
     if (!res || !res.ok) {
-      if (res) {
-        console.warn("[yahoo-fundamentals] " + res.status + " for " + symbol + suffix);
-        if (res.status === 404) {
-          redis
-            .set(notFoundKey(symbol, exchange), Date.now(), { ex: NEGATIVE_CACHE_TTL_SECONDS })
-            .catch(() => {});
-        }
+      if (res?.status === 404) {
+        redis
+          .set(notFoundKey(symbol, exchange), Date.now(), { ex: NEGATIVE_CACHE_TTL_SECONDS })
+          .catch(() => {});
       }
       return null;
     }
@@ -216,37 +202,59 @@ async function fetchYahooQuoteSummary(
     const sd = result.summaryDetail ?? {};
     const dks = result.defaultKeyStatistics ?? {};
     const fd = result.financialData ?? {};
-    const rt = result.recommendationTrend?.trend?.[0] ?? {};
+    const rtTrend = (result.recommendationTrend?.trend ?? []) as Array<{
+      period?: string;
+      strongBuy?: number;
+      buy?: number;
+      hold?: number;
+      sell?: number;
+      strongSell?: number;
+    }>;
+    const rt = rtTrend[0] ?? {};
     const ce = result.calendarEvents ?? {};
 
     const v = (x: any) => (x && typeof x === "object" && "raw" in x ? x.raw : x);
+    const vn = (x: any): number | undefined => {
+      const r = v(x);
+      return typeof r === "number" && Number.isFinite(r) ? r : undefined;
+    };
     const earningsDateRaw = ce.earnings?.earningsDate?.[0];
     const earningsDate = v(earningsDateRaw);
+    const trendHistory: RecommendationTrendEntry[] = rtTrend
+      .filter((t): t is typeof t & { period: string } => typeof t.period === "string")
+      .map((t) => ({
+        period: t.period,
+        strongBuy: t.strongBuy ?? 0,
+        buy: t.buy ?? 0,
+        hold: t.hold ?? 0,
+        sell: t.sell ?? 0,
+        strongSell: t.strongSell ?? 0,
+      }));
 
     return {
-      marketCap: v(sd.marketCap),
-      trailingPE: v(sd.trailingPE),
-      forwardPE: v(sd.forwardPE),
-      trailingEps: v(dks.trailingEps),
-      forwardEps: v(dks.forwardEps),
-      priceToBook: v(dks.priceToBook),
-      dividendYield: v(sd.dividendYield),
-      beta: v(sd.beta) ?? v(dks.beta),
-      yearHigh: v(sd.fiftyTwoWeekHigh),
-      yearLow: v(sd.fiftyTwoWeekLow),
-      revenueTTM: v(fd.totalRevenue),
-      grossProfitsTTM: v(fd.grossProfits),
-      ebitdaTTM: v(fd.ebitda),
-      netIncomeTTM: v(dks.netIncomeToCommon),
-      operatingMargin: v(fd.operatingMargins),
-      profitMargin: v(fd.profitMargins),
-      returnOnEquity: v(fd.returnOnEquity),
-      returnOnAssets: v(fd.returnOnAssets),
-      debtToEquity: v(fd.debtToEquity),
-      revenueGrowth: v(fd.revenueGrowth),
-      earningsGrowth: v(fd.earningsGrowth),
+      marketCap: vn(sd.marketCap),
+      trailingPE: vn(sd.trailingPE),
+      forwardPE: vn(sd.forwardPE),
+      trailingEps: vn(dks.trailingEps),
+      forwardEps: vn(dks.forwardEps),
+      priceToBook: vn(dks.priceToBook),
+      dividendYield: vn(sd.dividendYield),
+      beta: vn(sd.beta) ?? vn(dks.beta),
+      yearHigh: vn(sd.fiftyTwoWeekHigh),
+      yearLow: vn(sd.fiftyTwoWeekLow),
+      revenueTTM: vn(fd.totalRevenue),
+      grossProfitsTTM: vn(fd.grossProfits),
+      ebitdaTTM: vn(fd.ebitda),
+      netIncomeTTM: vn(dks.netIncomeToCommon),
+      operatingMargin: vn(fd.operatingMargins),
+      profitMargin: vn(fd.profitMargins),
+      returnOnEquity: vn(fd.returnOnEquity),
+      returnOnAssets: vn(fd.returnOnAssets),
+      debtToEquity: vn(fd.debtToEquity),
+      revenueGrowth: vn(fd.revenueGrowth),
+      earningsGrowth: vn(fd.earningsGrowth),
       earningsDate: typeof earningsDate === "number" ? earningsDate * 1000 : undefined,
-      analystRecommendation: v(fd.recommendationMean),
+      analystRecommendation: vn(fd.recommendationMean),
       analystCounts: rt.strongBuy !== undefined
         ? {
             strongBuy: rt.strongBuy ?? 0,
@@ -256,6 +264,11 @@ async function fetchYahooQuoteSummary(
             strongSell: rt.strongSell ?? 0,
           }
         : undefined,
+      recommendationTrendHistory: trendHistory.length > 0 ? trendHistory : undefined,
+      targetMeanPrice: vn(fd.targetMeanPrice),
+      targetHighPrice: vn(fd.targetHighPrice),
+      targetLowPrice: vn(fd.targetLowPrice),
+      numberOfAnalystOpinions: vn(fd.numberOfAnalystOpinions),
     };
   } catch (e) {
     console.warn("[yahoo-fundamentals] error", e);

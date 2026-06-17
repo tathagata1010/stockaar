@@ -14,6 +14,7 @@ export function formatINR(n: number): string {
 }
 
 export function formatPct(n: number): string {
+  if (!isFinite(n)) return "—";
   const sign = n > 0 ? "+" : "";
   return `${sign}${n.toFixed(2)}%`;
 }

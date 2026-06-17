@@ -399,7 +399,7 @@ function LegalFooter() {
       <div className="flex flex-wrap items-center gap-2">
         <Mail className="h-3.5 w-3.5" />
         <span>Need help? Email </span>
-        <Link href="mailto:hello@stockaar.app" className="text-brand underline">hello@stockaar.app</Link>
+        <Link href="mailto:stockaarin@gmail.com" className="text-brand underline">stockaarin@gmail.com</Link>
       </div>
       <p className="mt-3 leading-relaxed">
         Payments processed by Razorpay. By subscribing you agree to our{" "}

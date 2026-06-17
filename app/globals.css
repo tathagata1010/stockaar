@@ -46,6 +46,11 @@ html, body {
   overflow-x: clip;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 7rem;
+}
+
 body {
   font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-feature-settings: "cv11", "ss01", "ss03";

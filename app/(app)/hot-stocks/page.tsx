@@ -1,9 +1,12 @@
 import { Suspense } from "react";
-import { getUniverse } from "@/lib/universe";
+import { getUniverse, type UniverseRow } from "@/lib/universe";
 import { StockGrid } from "@/components/StockGrid";
 import { Disclaimer } from "@/components/Disclaimer";
+import { InPageSearch } from "@/components/InPageSearch";
 import { StickyScrollLayout, StickySection, type StickySection as TS } from "@/components/StickyScrollLayout";
 import { LazyMount } from "@/components/LazyMount";
+import { EmptySearchResult } from "@/components/empty/EmptySearchResult";
+import { LiveDot } from "@/components/anim/LiveDot";
 import { Flame, TrendingUp, TrendingDown, Target, Trophy, Award, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -16,41 +19,58 @@ export const metadata = {
   keywords: ["hot stocks today India", "trending stocks NSE", "best stocks to buy today", "stocks to watch India"],
 };
 
-export default function HotStocksPage() {
+export default function HotStocksPage(props: { searchParams: Promise<{ q?: string }> }) {
   return (
     <Suspense fallback={<HotShell loading />}>
-      <HotInner />
+      <HotInner searchParamsPromise={props.searchParams} />
     </Suspense>
   );
 }
 
-async function HotInner() {
-  const universe = await getUniverse();
+function matchRow(r: UniverseRow, q: string): boolean {
+  if (!q) return true;
+  const n = q.toLowerCase();
+  return (
+    r.entry.symbol.toLowerCase().includes(n) ||
+    r.entry.name.toLowerCase().includes(n) ||
+    (r.entry.sector?.toLowerCase().includes(n) ?? false)
+  );
+}
 
-  const topGainers = [...universe]
+async function HotInner({ searchParamsPromise }: { searchParamsPromise: Promise<{ q?: string }> }) {
+  const [universe, sp] = await Promise.all([getUniverse(), searchParamsPromise]);
+  const query = (sp.q ?? "").trim();
+  const pool = query ? universe.filter((r) => matchRow(r, query)) : universe;
+
+  const topGainers = [...pool]
     .filter((r) => r.quote)
     .sort((a, b) => b.quote!.changePct - a.quote!.changePct)
     .slice(0, 20);
 
-  const topLosers = [...universe]
+  const topLosers = [...pool]
     .filter((r) => r.quote)
     .sort((a, b) => a.quote!.changePct - b.quote!.changePct)
     .slice(0, 20);
 
-  const nearHigh = universe
+  const nearHigh = pool
     .filter((r) => r.rangePosition !== null && r.rangePosition > 85)
     .sort((a, b) => (b.rangePosition ?? 0) - (a.rangePosition ?? 0))
     .slice(0, 20);
 
-  const nearLow = universe
+  const nearLow = pool
     .filter((r) => r.rangePosition !== null && r.rangePosition < 15)
     .sort((a, b) => (a.rangePosition ?? 0) - (b.rangePosition ?? 0))
     .slice(0, 20);
 
-  const highScores = universe
+  const highScores = pool
     .filter((r) => r.scorecard)
     .sort((a, b) => b.scorecard!.composite - a.scorecard!.composite)
     .slice(0, 20);
+
+  const scoredPool = pool.filter((u) => u.scorecard);
+  const avgScore = scoredPool.length
+    ? scoredPool.reduce((a, r) => a + r.scorecard!.composite, 0) / scoredPool.length
+    : 0;
 
   const sections: TS[] = [
     { id: "gainers", label: "Top Movers ↑", icon: <TrendingUp className="h-3.5 w-3.5" />, badge: topGainers.length },
@@ -71,19 +91,40 @@ async function HotInner() {
       <p className="mt-3 text-xs text-muted">
         Trending NSE/BSE picks computed from momentum, range position and composite score.
       </p>
+      <div className="mt-4">
+        <InPageSearch placeholder="Filter by symbol, name or sector…" />
+      </div>
       <div className="mt-4 rounded-xl border border-border bg-card/60 p-3 text-xs">
-        <div className="flex items-center gap-1.5 font-semibold"><Sparkles className="h-3 w-3 text-brand" /> Universe</div>
-        <div className="mt-1 text-muted">{universe.length} stocks scanned</div>
+        <div className="flex items-center gap-1.5 font-semibold"><Sparkles className="h-3 w-3 text-brand" /> Universe <LiveDot className="ml-auto" /></div>
+        <div className="mt-1 text-muted tabular-nums">
+          {query ? <><span className="font-semibold text-fg">{pool.length}</span> of {universe.length}</> : <>{universe.length}</>} stocks {query ? "match" : "scanned"}
+        </div>
       </div>
       <div className="mt-2 rounded-xl border border-border bg-card/60 p-3 text-xs">
         <div className="font-semibold flex items-center gap-1.5"><Award className="h-3 w-3 text-accent" /> Avg Score</div>
         <div className="mt-1 text-muted tabular-nums">
-          {(universe.filter(u => u.scorecard).reduce((a, r) => a + r.scorecard!.composite, 0) /
-            Math.max(1, universe.filter(u => u.scorecard).length)).toFixed(0)} / 100
+          {avgScore.toFixed(0)} / 100
         </div>
       </div>
+      {query && pool.length === 0 && (
+        <p className="mt-3 text-[11px] text-muted">
+          No stocks match <span className="font-semibold text-fg">&ldquo;{query}&rdquo;</span>. Try a shorter query or use the header search.
+        </p>
+      )}
     </>
   );
+
+  if (query && pool.length === 0) {
+    return (
+      <main>
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+          <div className="space-y-4">{hero}</div>
+          <EmptySearchResult query={query} noun="stocks" suggestions={["RELIANCE", "TCS", "HDFCBANK", "INFY"]} />
+        </div>
+        <Disclaimer className="mt-10" />
+      </main>
+    );
+  }
 
   return (
     <main>

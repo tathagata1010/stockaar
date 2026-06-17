@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SymbolEntry } from "@/lib/nse-symbols";
 import { SymbolPicker } from "@/components/SymbolPicker";
+import { toast } from "@/lib/toast";
 
 export function AddStockForm({ disabled }: { disabled?: boolean }) {
   const [submitting, setSubmitting] = useState(false);
@@ -29,6 +30,7 @@ export function AddStockForm({ disabled }: { disabled?: boolean }) {
         return;
       }
       setSuccess(`${entry.symbol} added to watchlist`);
+      toast.success(`${entry.symbol} added`, "Now tracking on your watchlist.");
       router.refresh();
       setTimeout(() => setSuccess(null), 3000);
     } catch (e) {

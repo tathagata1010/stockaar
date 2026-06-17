@@ -1,5 +1,6 @@
 import { redis } from "./redis";
-import { getYahooCrumb, YAHOO_UA } from "./yahoo-auth";
+import { YAHOO_UA } from "./yahoo-auth";
+import { yahooFetch } from "./yahoo/client";
 import { NSE_SYMBOLS } from "./nse-symbols";
 
 export type NewsItem = {
@@ -71,12 +72,8 @@ async function fromYahoo(symbol: string, exchange: "NSE" | "BSE"): Promise<NewsI
   url.searchParams.set("quotesCount", "0");
   url.searchParams.set("enableFuzzyQuery", "false");
   try {
-    const crumb = await getYahooCrumb();
-    const res = await fetch(url.toString(), {
-      headers: { "User-Agent": YAHOO_UA, Accept: "application/json", ...(crumb ? { Cookie: crumb.cookie } : {}) },
-      next: { revalidate: 0 },
-    });
-    if (!res.ok) return [];
+    const res = await yahooFetch(url.toString());
+    if (!res || !res.ok) return [];
     const json = await res.json();
     return (json.news ?? [])
       .map((n: any): NewsItem => ({

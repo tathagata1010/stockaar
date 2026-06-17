@@ -5,6 +5,9 @@ import { getRedditBuzz, type BuzzItem } from "@/lib/reddit-buzz";
 import { StockLogo } from "@/components/StockLogo";
 import { Skeleton } from "@/components/Skeleton";
 import { AppShell } from "@/components/shell/AppShell";
+import { InPageSearch } from "@/components/InPageSearch";
+import { EmptySearchResult } from "@/components/empty/EmptySearchResult";
+import { LiveDot } from "@/components/anim/LiveDot";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -32,13 +35,13 @@ function compact(n: number): string {
   return String(Math.round(n));
 }
 
-export default function TrendingPage() {
+export default function TrendingPage(props: { searchParams: Promise<{ q?: string }> }) {
   return (
     <AppShell>
       <div className="space-y-6">
         <Hero />
         <Suspense fallback={<BuzzGridSkeleton />}>
-          <BuzzGrid />
+          <BuzzGrid searchParamsPromise={props.searchParams} />
         </Suspense>
       </div>
     </AppShell>
@@ -52,7 +55,7 @@ function Hero() {
       <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
       <div className="relative max-w-3xl">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/30">
-          <Flame className="h-3 w-3" /> Market Buzz · Trending
+          <Flame className="h-3 w-3" /> Market Buzz · Trending <LiveDot className="ml-1" />
         </span>
         <h1 className="num-display mt-4 text-2xl font-bold leading-tight sm:text-3xl md:text-4xl lg:text-5xl">
           What India is <span className="bg-gradient-to-r from-brand via-accent to-brand-2 bg-clip-text text-transparent">talking about</span> today.
@@ -67,8 +70,13 @@ function Hero() {
   );
 }
 
-async function BuzzGrid() {
-  const { items, sampleSize, newsSample, builtAt } = await getRedditBuzz();
+async function BuzzGrid({ searchParamsPromise }: { searchParamsPromise: Promise<{ q?: string }> }) {
+  const [{ items, sampleSize, newsSample, builtAt }, sp] = await Promise.all([
+    getRedditBuzz(),
+    searchParamsPromise,
+  ]);
+  const query = (sp.q ?? "").trim();
+  const filtered = filterBuzz(items, query);
 
   if (!items.length) {
     return (
@@ -80,28 +88,47 @@ async function BuzzGrid() {
 
   return (
     <>
+      <div className="max-w-xl">
+        <InPageSearch placeholder="Filter trending tickers by symbol, name or sector…" />
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
         <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1">
           <Sparkles className="h-3.5 w-3.5 text-brand" />
           Scanned <span className="font-semibold text-fg">{sampleSize}</span> Reddit posts ·{" "}
-          <span className="font-semibold text-fg">{newsSample}</span> news headlines · found{" "}
-          <span className="font-semibold text-fg">{items.length}</span> trending tickers
+          <span className="font-semibold text-fg">{newsSample}</span> news headlines · showing{" "}
+          <span className="font-semibold text-fg">{filtered.length}</span>
+          {query && <> of <span className="font-semibold text-fg">{items.length}</span></>} trending tickers
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5" /> Updated {timeAgo(builtAt)}
         </span>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((it, i) => (
-          <BuzzCard key={it.entry.symbol} item={it} rank={i + 1} className={`fade-up-${(i % 5) + 1}`} />
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <EmptySearchResult query={query} noun="trending tickers" suggestions={["RELIANCE", "TCS", "INFY"]} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((it, i) => (
+            <BuzzCard key={it.entry.symbol} item={it} rank={items.indexOf(it) + 1} className={`fade-up-${(i % 5) + 1}`} />
+          ))}
+        </div>
+      )}
 
       <p className="pt-4 text-center text-[11px] text-muted">
         Aggregated from public Reddit data. For informational purposes only. Not investment advice.
       </p>
     </>
+  );
+}
+
+function filterBuzz(items: BuzzItem[], query: string): BuzzItem[] {
+  if (!query) return items;
+  const n = query.toLowerCase();
+  return items.filter((it) =>
+    it.entry.symbol.toLowerCase().includes(n) ||
+    it.entry.name.toLowerCase().includes(n) ||
+    (it.entry.sector?.toLowerCase().includes(n) ?? false)
   );
 }
 

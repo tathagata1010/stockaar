@@ -1,11 +1,12 @@
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { MarketTickerStripAsync } from "@/components/MarketTickerStrip";
 import { NavProgress } from "@/components/NavProgress";
 import { PageTransition } from "@/components/anim/PageTransition";
+import { Toaster } from "@/components/Toaster";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -22,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <PageTransition>{children}</PageTransition>
       </div>
       <Footer />
+      <Toaster />
     </div>
   );
 }

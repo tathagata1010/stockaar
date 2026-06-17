@@ -15,7 +15,7 @@ export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<
   { ok: true; id?: string } | { ok: false; error: string }
 > {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM || "alerts@stockaar.app";
+  const from = process.env.EMAIL_FROM || "stockaarin@gmail.com";
   if (!apiKey) {
     console.warn("[email] RESEND_API_KEY missing — skipping send", { to, subject });
     return { ok: false, error: "email not configured" };

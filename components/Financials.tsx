@@ -12,13 +12,20 @@ function Cell({ label, value, sub }: { label: string; value: string; sub?: strin
 }
 
 export function Financials({ f }: { f: Fundamentals }) {
-  if (!f.revenueTTM && !f.netIncomeTTM && !f.ebitdaTTM) return null;
+  const num = (v: number | undefined | null) => (Number.isFinite(v) ? (v as number) : null);
+  const revenue = num(f.revenueTTM);
+  const ebitda = num(f.ebitdaTTM);
+  const netIncome = num(f.netIncomeTTM);
+  const profitMargin = num(f.profitMargin);
+  const revenueGrowth = num(f.revenueGrowth);
+  const earningsGrowth = num(f.earningsGrowth);
+  if (revenue == null && ebitda == null && netIncome == null) return null;
   const dash = "—";
-  const revGrowth = f.revenueGrowth !== undefined
-    ? `${f.revenueGrowth > 0 ? "+" : ""}${(f.revenueGrowth * 100).toFixed(1)}% YoY`
+  const revGrowth = revenueGrowth != null
+    ? `${revenueGrowth > 0 ? "+" : ""}${(revenueGrowth * 100).toFixed(1)}% YoY`
     : undefined;
-  const earnGrowth = f.earningsGrowth !== undefined
-    ? `${f.earningsGrowth > 0 ? "+" : ""}${(f.earningsGrowth * 100).toFixed(1)}% YoY`
+  const earnGrowth = earningsGrowth != null
+    ? `${earningsGrowth > 0 ? "+" : ""}${(earningsGrowth * 100).toFixed(1)}% YoY`
     : undefined;
   return (
     <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
@@ -27,12 +34,12 @@ export function Financials({ f }: { f: Fundamentals }) {
         <span className="text-xs text-muted">Trailing twelve months</span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Cell label="Revenue" value={f.revenueTTM ? formatCompactINR(f.revenueTTM) : dash} sub={revGrowth} />
-        <Cell label="EBITDA" value={f.ebitdaTTM ? formatCompactINR(f.ebitdaTTM) : dash} />
-        <Cell label="Net Income" value={f.netIncomeTTM ? formatCompactINR(f.netIncomeTTM) : dash} sub={earnGrowth} />
+        <Cell label="Revenue" value={revenue != null ? formatCompactINR(revenue) : dash} sub={revGrowth} />
+        <Cell label="EBITDA" value={ebitda != null ? formatCompactINR(ebitda) : dash} />
+        <Cell label="Net Income" value={netIncome != null ? formatCompactINR(netIncome) : dash} sub={earnGrowth} />
         <Cell
           label="Profit Margin"
-          value={f.profitMargin !== undefined ? `${(f.profitMargin * 100).toFixed(1)}%` : dash}
+          value={profitMargin != null ? `${(profitMargin * 100).toFixed(1)}%` : dash}
         />
       </div>
     </section>

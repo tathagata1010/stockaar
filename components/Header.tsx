@@ -9,6 +9,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { MobileNavDrawer } from "./shell/MobileNavDrawer";
 import { StockSearch } from "./StockSearch";
 import { AccountMenu } from "./AccountMenu";
+import { StreakBadge } from "./StreakBadge";
 
 export function Header({ email }: { email: string }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -39,6 +40,7 @@ export function Header({ email }: { email: string }) {
         <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
           <NavLinks />
           <div className="flex items-center gap-2">
+            <StreakBadge />
             <ThemeToggle />
             <div className="hidden md:block">
               <AccountMenu email={email} />

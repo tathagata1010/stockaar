@@ -1,12 +1,11 @@
-// Quote wrapper — Yahoo Finance v7 (bulk, with crumb/cookie) + v8 chart fallback.
-//
-// Upstox was removed: their v2 OAuth tokens expire daily at 3:30am IST with no
-// refresh token, so every call in prod was 401-ing and falling through to Yahoo
-// anyway. Yahoo's ~15min delay is fine for a research app.
+// Quote wrapper — Yahoo Finance v7 bulk (crumb/cookie) + v8 chart fallback.
+// Filename kept for import stability — Upstox source itself was removed.
 
 import { cache } from "react";
 import { redis } from "./redis";
-import { getYahooCrumb, invalidateYahooCrumb, YAHOO_UA } from "./yahoo-auth";
+import { STALE_TTL_SECONDS, readStaleMany, staleKey } from "./stale-cache";
+import { fetchQuotesFallback } from "./sources";
+import { yahooFetch } from "./yahoo/client";
 
 export type Quote = {
   symbol: string;
@@ -68,24 +67,45 @@ export async function getQuotes(
     else misses.push(it);
   });
 
-  // 2. Bulk upstream for misses
   if (misses.length > 0) {
     const fresh = await fetchManyFromYahoo(misses);
+    for (const q of fresh) found.set(`${q.exchange}:${q.symbol}`, q);
 
-    // 3. Pipeline writes
-    if (fresh.length > 0) {
+    // Yahoo miss → try NSE public endpoint for any still-missing NSE symbols.
+    let nseFresh: Quote[] = [];
+    const afterYahooMissing = unique.filter(
+      (it) => !found.has(`${it.exchange}:${it.symbol}`),
+    );
+    if (afterYahooMissing.length > 0) {
+      nseFresh = await fetchQuotesFallback(afterYahooMissing);
+      for (const q of nseFresh) found.set(`${q.exchange}:${q.symbol}`, q);
+    }
+
+    const allFresh = [...fresh, ...nseFresh];
+    if (allFresh.length > 0) {
       try {
         const pipe = redis.pipeline();
-        for (const q of fresh) {
-          pipe.set(cacheKey(q.symbol, q.exchange), q, { ex: CACHE_TTL_SECONDS });
+        for (const q of allFresh) {
+          const k = cacheKey(q.symbol, q.exchange);
+          pipe.set(k, q, { ex: CACHE_TTL_SECONDS });
+          pipe.set(staleKey(k), q, { ex: STALE_TTL_SECONDS });
         }
         await pipe.exec();
       } catch {}
     }
-    for (const q of fresh) found.set(`${q.exchange}:${q.symbol}`, q);
+
+    const stillMissing = unique.filter((it) => !found.has(`${it.exchange}:${it.symbol}`));
+    if (stillMissing.length > 0) {
+      const stale = await readStaleMany<Quote>(
+        stillMissing.map((it) => cacheKey(it.symbol, it.exchange)),
+      );
+      stillMissing.forEach((it, i) => {
+        const s = stale[i];
+        if (s) found.set(`${it.exchange}:${it.symbol}`, s);
+      });
+    }
   }
 
-  // 4. Preserve caller order
   return unique
     .map((it) => found.get(`${it.exchange}:${it.symbol}`))
     .filter((q): q is Quote => q != null);
@@ -94,50 +114,32 @@ export async function getQuotes(
 async function fetchManyFromYahoo(
   items: { symbol: string; exchange: "NSE" | "BSE" }[],
 ): Promise<Quote[]> {
-  // Preferred path: Yahoo v7 bulk (80/call) with crumb + cookie auth.
-  // Fallback: v8 chart endpoint per-symbol (unauthenticated) if crumb fetch fails.
-  const auth = await getYahooCrumb().catch(() => null);
-  if (auth) {
-    const bulk = await fetchYahooV7Bulk(items, auth);
-    // If bulk returned nothing (crumb may have expired between fetch and use), force-refresh once.
-    if (bulk.length === 0 && items.length > 0) {
-      await invalidateYahooCrumb();
-      const fresh = await getYahooCrumb().catch(() => null);
-      if (fresh) return fetchYahooV7Bulk(items, fresh);
-    }
-    return bulk;
-  }
-  return fetchYahooChartFallback(items);
+  // Preferred: Yahoo v7 bulk (80/call) with crumb. Auth handled by yahooFetch.
+  // Fallback: v8 chart per-symbol if v7 returns empty.
+  const bulk = await fetchYahooV7Bulk(items);
+  if (bulk.length === 0 && items.length > 0) return fetchYahooChartFallback(items);
+  return bulk;
 }
 
 async function fetchYahooV7Bulk(
   items: { symbol: string; exchange: "NSE" | "BSE" }[],
-  auth: { crumb: string; cookie: string },
 ): Promise<Quote[]> {
   const result: Quote[] = [];
   const batches = chunk(items, YAHOO_BATCH_SIZE);
 
   await Promise.all(
     batches.map(async (batch) => {
+      const symbols = batch
+        .map((b) => `${b.symbol}${b.exchange === "NSE" ? ".NS" : ".BO"}`)
+        .join(",");
+      const url =
+        `https://query1.finance.yahoo.com/v7/finance/quote` +
+        `?symbols=${encodeURIComponent(symbols)}`;
+      const res = await yahooFetch(url);
+      if (!res || !res.ok) return;
       try {
-        const symbols = batch
-          .map((b) => `${b.symbol}${b.exchange === "NSE" ? ".NS" : ".BO"}`)
-          .join(",");
-        const url =
-          `https://query1.finance.yahoo.com/v7/finance/quote` +
-          `?symbols=${encodeURIComponent(symbols)}` +
-          `&crumb=${encodeURIComponent(auth.crumb)}`;
-        const res = await fetch(url, {
-          headers: {
-            "User-Agent": YAHOO_UA,
-            Accept: "application/json",
-            Cookie: auth.cookie,
-          },
-          next: { revalidate: 0 },
-        });
-        if (!res.ok) return;
         const data = await res.json();
-        const rows = (data?.quoteResponse?.result ?? []) as any[];
+        const rows = (data?.quoteResponse?.result ?? []) as Array<Record<string, unknown>>;
         for (const r of rows) {
           const fullSym = String(r.symbol ?? "");
           const exchange: "NSE" | "BSE" = fullSym.endsWith(".BO") ? "BSE" : "NSE";
@@ -145,9 +147,11 @@ async function fetchYahooV7Bulk(
           const lastPrice = Number(r.regularMarketPrice);
           if (!Number.isFinite(lastPrice) || lastPrice <= 0) continue;
           const close = Number(r.regularMarketPreviousClose ?? lastPrice);
-          const change = Number.isFinite(r.regularMarketChange) ? r.regularMarketChange : lastPrice - close;
-          const changePct = Number.isFinite(r.regularMarketChangePercent)
-            ? r.regularMarketChangePercent
+          const change = Number.isFinite(r.regularMarketChange as number)
+            ? (r.regularMarketChange as number)
+            : lastPrice - close;
+          const changePct = Number.isFinite(r.regularMarketChangePercent as number)
+            ? (r.regularMarketChangePercent as number)
             : close
               ? (change / close) * 100
               : 0;
@@ -180,19 +184,13 @@ async function fetchYahooChartFallback(
     const batch = items.slice(i, i + YAHOO_CONCURRENCY);
     const out = await Promise.all(
       batch.map(async (it) => {
+        const ySym = `${it.symbol}${it.exchange === "NSE" ? ".NS" : ".BO"}`;
+        const res = await yahooFetch(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=1d`,
+          { withAuth: false },
+        );
+        if (!res || !res.ok) return null;
         try {
-          const ySym = `${it.symbol}${it.exchange === "NSE" ? ".NS" : ".BO"}`;
-          const res = await fetch(
-            `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=1d`,
-            {
-              headers: {
-                "User-Agent": YAHOO_UA,
-                Accept: "application/json",
-              },
-              next: { revalidate: 0 },
-            },
-          );
-          if (!res.ok) return null;
           const data = await res.json();
           const meta = data?.chart?.result?.[0]?.meta;
           if (!meta) return null;

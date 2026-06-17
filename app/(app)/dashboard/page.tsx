@@ -7,9 +7,10 @@ import { NSE_SYMBOLS } from "@/lib/nse-symbols";
 import { StockLogo } from "@/components/StockLogo";
 import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Circle } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
+import { SinceLastVisit } from "@/components/dashboard/SinceLastVisit";
+import { StreakHero } from "@/components/dashboard/StreakHero";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 60;
 
 export const metadata = {
   title: "Dashboard — Nifty, Sensex, Bank Nifty Live",
@@ -25,12 +26,15 @@ export default function DashboardPage() {
       <section className="mesh-hero relative overflow-hidden rounded-3xl border border-border-strong bg-card/40 p-4 shadow-glow sm:p-6 md:p-8 lg:p-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className={cn(
-              "chip mb-3",
-              open ? "chip-accent" : "chip-warning",
-            )}>
-              <Circle className={cn("h-2 w-2 fill-current", open && "animate-pulse-soft")} />
-              {open ? "Markets are LIVE" : "Markets closed"}
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className={cn(
+                "chip",
+                open ? "chip-accent" : "chip-warning",
+              )}>
+                <Circle className={cn("h-2 w-2 fill-current", open && "animate-pulse-soft")} />
+                {open ? "Markets are LIVE" : "Markets closed"}
+              </div>
+              <StreakHero />
             </div>
             <h1 className="num-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
               Welcome back to <span className="text-gradient-animate">your markets</span>
@@ -52,6 +56,10 @@ export default function DashboardPage() {
 
       <Suspense fallback={<IndicesShell />}>
         <IndicesSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <SinceSection />
       </Suspense>
 
       <Suspense fallback={<MoversShell />}>
@@ -135,6 +143,15 @@ async function MoversSection() {
       <MoversCard title="Top Losers" items={movers.losers} kind="loss" />
     </section>
   );
+}
+
+async function SinceSection() {
+  const indices = await getAllIndices();
+  const rows = indices
+    .filter((i) => Number.isFinite(i.lastPrice) && i.lastPrice > 0)
+    .map((i) => ({ symbol: i.yahooSymbol, label: i.name, price: i.lastPrice }));
+  if (rows.length === 0) return null;
+  return <SinceLastVisit rows={rows} />;
 }
 
 function MoversShell() {

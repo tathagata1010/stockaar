@@ -12,12 +12,12 @@ import {
 } from "lucide-react";
 
 export const PRIMARY = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/watchlist", label: "Watchlist", icon: Star },
-  { href: "/hot-stocks", label: "Hot", icon: Flame },
-  { href: "/calls", label: "Calls", icon: Target },
-  { href: "/screener", label: "Screener", icon: Filter },
-  { href: "/news", label: "News", icon: Newspaper },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, hideAtLg: false },
+  { href: "/watchlist", label: "Watchlist", icon: Star,            hideAtLg: false },
+  { href: "/hot-stocks", label: "Hot",      icon: Flame,           hideAtLg: false },
+  { href: "/calls",     label: "Calls",     icon: Target,          hideAtLg: false },
+  { href: "/screener",  label: "Screener",  icon: Filter,          hideAtLg: false },
+  { href: "/news",      label: "News",      icon: Newspaper,       hideAtLg: true  },
 ];
 
 export const DISCOVER = [
@@ -44,7 +44,13 @@ export function NavLinks() {
   const pathname = usePathname();
   return (
     <div className="hidden items-center gap-0.5 md:flex">
-      {PRIMARY.map((l) => <NavItem key={l.href} {...l} active={isActive(pathname, l.href)} />)}
+      {PRIMARY.map((l) => (
+        <NavItem
+          key={l.href}
+          {...l}
+          active={isActive(pathname, l.href)}
+        />
+      ))}
       <Dropdown
         label="Discover"
         items={DISCOVER}
@@ -62,14 +68,15 @@ export function NavLinks() {
 }
 
 function NavItem({
-  href, label, icon: Icon, active,
-}: { href: string; label: string; icon: typeof LayoutDashboard; active: boolean }) {
+  href, label, icon: Icon, active, hideAtLg,
+}: { href: string; label: string; icon: typeof LayoutDashboard; active: boolean; hideAtLg?: boolean }) {
   return (
     <Link
       href={href}
       prefetch
       className={cn(
         "group relative inline-flex items-center gap-1 rounded-lg px-1.5 py-1.5 text-[13px] transition-all lg:gap-1.5 lg:px-2.5 lg:text-sm",
+        hideAtLg && "lg:hidden xl:inline-flex",
         active ? "font-semibold text-brand" : "text-muted hover:bg-card/60 hover:text-fg",
       )}
     >

@@ -271,3 +271,18 @@ export const getInstFlows = cache(async (): Promise<FlowsPayload | null> => {
   const cached = await redis.get<FlowsPayload>(AGG_KEY).catch(() => null);
   return cached ?? null;
 });
+
+// Read-side helper for the anomalies page. Returns BLOCK deals from the most
+// recent day(s) in the rolling window, newest-first, capped at `limit`.
+export const getRecentBlockDeals = cache(async (limit = 50): Promise<Deal[]> => {
+  const days = (await redis.get<DayBucket[]>(DAYS_KEY).catch(() => null)) ?? [];
+  const out: Deal[] = [];
+  for (const day of days) {
+    for (const d of day.deals) {
+      if (d.type === "BLOCK") out.push(d);
+      if (out.length >= limit) return out;
+    }
+    if (out.length >= limit) break;
+  }
+  return out;
+});

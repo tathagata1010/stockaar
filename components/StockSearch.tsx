@@ -42,6 +42,7 @@ export function StockSearch({ compact = false }: { compact?: boolean }) {
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
 
   const results = useMemo(() => {
     if (q.trim().length === 0) return [] as Result[];
@@ -75,6 +76,11 @@ export function StockSearch({ compact = false }: { compact?: boolean }) {
   useDismiss(boxRef, open, close, { escape: false });
 
   useEffect(() => { setActive(0); }, [q]);
+
+  useEffect(() => {
+    if (!open) return;
+    itemRefs.current[active]?.scrollIntoView({ block: "nearest" });
+  }, [active, open]);
 
   function go(r: Result) {
     const href = r.kind === "stock" ? `/stock/${r.symbol}` : `/indices/${r.slug}`;
@@ -131,7 +137,10 @@ export function StockSearch({ compact = false }: { compact?: boolean }) {
               {results.map((r, i) => {
                 const isActive = i === active;
                 return (
-                  <li key={r.kind === "stock" ? `s:${r.symbol}` : `i:${r.slug}`}>
+                  <li
+                    key={r.kind === "stock" ? `s:${r.symbol}` : `i:${r.slug}`}
+                    ref={(el) => { itemRefs.current[i] = el; }}
+                  >
                     <button
                       type="button"
                       onMouseEnter={() => setActive(i)}

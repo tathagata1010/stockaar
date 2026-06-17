@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { getRecentGuidance } from "@/lib/guidance";
+import { getRecentGuidance, type GuidanceFeedRow } from "@/lib/guidance";
 import { Disclaimer } from "@/components/Disclaimer";
+import { InPageSearch } from "@/components/InPageSearch";
+import { EmptySearchResult } from "@/components/empty/EmptySearchResult";
 import { Sparkles, TrendingUp, TrendingDown, Minus, Shuffle, ExternalLink, Clock, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,10 +41,11 @@ const CATEGORY_LABEL: Record<string, string> = {
   press_release: "Press release",
 };
 
-export default async function GuidancePage(props: { searchParams: Promise<{ dir?: string }> }) {
+export default async function GuidancePage(props: { searchParams: Promise<{ dir?: string; q?: string }> }) {
   const searchParams = await props.searchParams;
   const dirParam = (searchParams.dir ?? "").toLowerCase();
   const direction = (ALL_DIRECTIONS as string[]).includes(dirParam) ? (dirParam as Direction) : undefined;
+  const query = (searchParams.q ?? "").trim();
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -57,12 +60,19 @@ export default async function GuidancePage(props: { searchParams: Promise<{ dir?
         </p>
       </header>
 
+      <div className="mb-4 max-w-xl">
+        <InPageSearch
+          placeholder="Filter by company, symbol, metric or quoted phrase…"
+          hint="Tip: try “margin”, “capex”, or a ticker like RELIANCE."
+        />
+      </div>
+
       <div className="mb-5 flex flex-wrap gap-2">
-        <FilterChip href="/guidance" active={!direction} label="All" />
+        <FilterChip href={hrefWithQuery({ dir: undefined, q: query })} active={!direction} label="All" />
         {ALL_DIRECTIONS.map((d) => (
           <FilterChip
             key={d}
-            href={`/guidance?dir=${d}`}
+            href={hrefWithQuery({ dir: d, q: query })}
             active={direction === d}
             label={DIR_META[d].label}
             tone={DIR_META[d].tone}
@@ -70,8 +80,8 @@ export default async function GuidancePage(props: { searchParams: Promise<{ dir?
         ))}
       </div>
 
-      <Suspense fallback={<Skeleton />}>
-        <Feed direction={direction} />
+      <Suspense fallback={<Skeleton />} key={`${direction ?? ""}|${query}`}>
+        <Feed direction={direction} query={query} />
       </Suspense>
 
       <div className="mt-8">
@@ -82,6 +92,14 @@ export default async function GuidancePage(props: { searchParams: Promise<{ dir?
       </div>
     </main>
   );
+}
+
+function hrefWithQuery({ dir, q }: { dir?: Direction; q?: string }): string {
+  const params = new URLSearchParams();
+  if (dir) params.set("dir", dir);
+  if (q) params.set("q", q);
+  const qs = params.toString();
+  return qs ? `/guidance?${qs}` : "/guidance";
 }
 
 function FilterChip({ href, active, label, tone }: { href: string; active: boolean; label: string; tone?: string }) {
@@ -100,8 +118,12 @@ function FilterChip({ href, active, label, tone }: { href: string; active: boole
   );
 }
 
-async function Feed({ direction }: { direction?: Direction }) {
-  const rows = await getRecentGuidance({ limit: 80, direction });
+async function Feed({ direction, query }: { direction?: Direction; query: string }) {
+  // Pull a wider universe window — we want every listed company that has filed
+  // in the recent ingest window, not just the top 80. Filter happens in-memory.
+  const rows = await getRecentGuidance({ limit: 300, direction });
+  const filtered = filterRows(rows, query);
+
   if (rows.length === 0) {
     return (
       <div className="surface relative overflow-hidden p-10 text-center">
@@ -114,18 +136,46 @@ async function Feed({ direction }: { direction?: Direction }) {
       </div>
     );
   }
+
+  if (filtered.length === 0) {
+    return <EmptySearchResult query={query} noun="signals" suggestions={["RELIANCE", "INFY", "HDFCBANK"]} />;
+  }
+
   return (
-    <ul className="space-y-3">
-      {rows.map((r) => (
-        <li key={r.id}>
-          <GuidanceRow row={r} />
-        </li>
-      ))}
-    </ul>
+    <>
+      <p className="mb-3 text-xs text-muted tabular-nums">
+        Showing <span className="font-semibold text-fg">{filtered.length}</span>
+        {query || direction ? <> of <span className="font-semibold text-fg">{rows.length}</span></> : null} signals
+        {direction && <> · {DIR_META[direction].label}</>}
+        {query && <> · matching <span className="font-semibold text-fg">&ldquo;{query}&rdquo;</span></>}
+      </p>
+      <ul className="space-y-3">
+        {filtered.map((r) => (
+          <li key={r.id}>
+            <GuidanceRow row={r} query={query} />
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
-function GuidanceRow({ row }: { row: Awaited<ReturnType<typeof getRecentGuidance>>[number] }) {
+function filterRows(rows: GuidanceFeedRow[], query: string): GuidanceFeedRow[] {
+  if (!query) return rows;
+  const needle = query.toLowerCase();
+  return rows.filter((r) => {
+    if (r.symbol.toLowerCase().includes(needle)) return true;
+    if (r.metric.toLowerCase().includes(needle)) return true;
+    if (r.quote.toLowerCase().includes(needle)) return true;
+    if (r.value_text && r.value_text.toLowerCase().includes(needle)) return true;
+    if (r.timeframe && r.timeframe.toLowerCase().includes(needle)) return true;
+    if (r.filing?.company_name && r.filing.company_name.toLowerCase().includes(needle)) return true;
+    if (r.filing?.headline && r.filing.headline.toLowerCase().includes(needle)) return true;
+    return false;
+  });
+}
+
+function GuidanceRow({ row, query }: { row: Awaited<ReturnType<typeof getRecentGuidance>>[number]; query: string }) {
   const meta = DIR_META[row.direction];
   const Icon = meta.icon;
   const category = row.filing?.category ? CATEGORY_LABEL[row.filing.category] ?? row.filing.category : "Filing";
@@ -139,10 +189,10 @@ function GuidanceRow({ row }: { row: Awaited<ReturnType<typeof getRecentGuidance
             href={`/stock/${row.symbol}`}
             className="text-base font-semibold tracking-tight text-fg hover:text-brand"
           >
-            {row.symbol}
+            {highlight(row.symbol, query)}
           </Link>
           {row.filing?.company_name && (
-            <span className="truncate text-xs text-muted">· {row.filing.company_name}</span>
+            <span className="truncate text-xs text-muted">· {highlight(row.filing.company_name, query)}</span>
           )}
           <span className={cn("ml-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ring-white/5", meta.tone)}>
             <Icon className="h-3 w-3" />
@@ -151,7 +201,7 @@ function GuidanceRow({ row }: { row: Awaited<ReturnType<typeof getRecentGuidance
         </div>
 
         <blockquote className="border-l-2 border-brand/40 pl-3 text-sm italic text-fg/90">
-          &ldquo;{row.quote}&rdquo;
+          &ldquo;{highlight(row.quote, query)}&rdquo;
         </blockquote>
 
         <div className="flex flex-wrap items-center gap-2 text-[11px]">
@@ -176,6 +226,21 @@ function GuidanceRow({ row }: { row: Awaited<ReturnType<typeof getRecentGuidance
         </div>
       </div>
     </article>
+  );
+}
+
+function highlight(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+  const needle = query.toLowerCase();
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(needle);
+  if (idx < 0) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="rounded-sm bg-brand/25 px-0.5 text-fg">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
   );
 }
 

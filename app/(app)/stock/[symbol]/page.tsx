@@ -1,18 +1,19 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import { notFound } from "next/navigation";
 import { getQuote } from "@/lib/upstox";
 import { getFundamentals } from "@/lib/fundamentals";
 import { fetchBrokerReports } from "@/lib/trendlyne-brokers";
 import { getShareholdingTimeline } from "@/lib/xbrl-shp";
 import { fetchYahooHistory } from "@/lib/history";
+import { fetchCorporateActions } from "@/lib/events";
 import { buildScorecard } from "@/lib/scorecard";
 import { NSE_SYMBOLS } from "@/lib/nse-symbols";
 import { formatINR, cn } from "@/lib/utils";
 import { siteUrl } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import { AddStockDetailButton } from "@/components/AddStockDetailButton";
-import { PriceChart } from "@/components/PriceChart";
+import { PriceChartAdvanced } from "@/components/PriceChartAdvanced";
 import { RangeBar } from "@/components/RangeBar";
 import { PerformanceReturns } from "@/components/PerformanceReturns";
 import { ScorecardView } from "@/components/ScorecardView";
@@ -28,14 +29,21 @@ import { LiveHeroPrice } from "@/components/LiveHeroPrice";
 import { StickyScrollLayout, StickySection, type StickySection as TS } from "@/components/StickyScrollLayout";
 import { LazyMount } from "@/components/LazyMount";
 import { NewsSection } from "@/components/NewsSection";
+import { HeroSparkline } from "@/components/stock/HeroSparkline";
+import { HeroRangeMini } from "@/components/stock/HeroRangeMini";
+import { HeroMetrics } from "@/components/stock/HeroMetrics";
+import { ShareButton } from "@/components/stock/ShareButton";
+import { MobileActionBar } from "@/components/stock/MobileActionBar";
+import { PeerComparison } from "@/components/stock/PeerComparison";
+import { CorporateActions } from "@/components/stock/CorporateActions";
+import { getPeers } from "@/lib/peers";
 import { getAIBrief } from "@/lib/ai-brief";
 import {
   LineChart, Activity, Award, BarChart3, Sparkles, Building2, Users,
-  Bell, Newspaper, PieChart,
+  Bell, Newspaper, PieChart, Calendar, GitCompare,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 60;
 
 export async function generateStaticParams() {
   // No build-time prerender — page is force-dynamic. Returning [] avoids
@@ -93,9 +101,13 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
 
       <div className="divider-soft my-4" />
 
-      <Suspense fallback={<HeroPriceSkeleton />}>
-        <HeroPrice symbol={symbol} exchange={meta.exchange} />
+      <Suspense fallback={<HeroBlockSkeleton />}>
+        <HeroBlock symbol={symbol} exchange={meta.exchange} />
       </Suspense>
+
+      <div className="mt-3">
+        <HeroSparkline symbol={symbol} exchange={meta.exchange} />
+      </div>
 
       <div className="divider-soft my-4" />
 
@@ -103,6 +115,7 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
         <Suspense fallback={<div className="h-10 shimmer rounded-lg" />}>
           <HeroActions symbol={symbol} exchange={meta.exchange} />
         </Suspense>
+        <ShareButton symbol={symbol} name={meta.name} />
       </div>
 
       <Link href="/dashboard" className="mt-4 inline-block text-[11px] text-muted hover:text-brand">
@@ -113,12 +126,14 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
 
   const sections: TS[] = [
     { id: "overview", label: "Overview", icon: <LineChart className="h-3.5 w-3.5" /> },
+    { id: "peers", label: "Peers", icon: <GitCompare className="h-3.5 w-3.5" /> },
     { id: "performance", label: "Performance", icon: <Activity className="h-3.5 w-3.5" /> },
     { id: "ai-brief", label: "AI Brief", icon: <Sparkles className="h-3.5 w-3.5" />, badge: "Pro" },
     { id: "news", label: "News", icon: <Newspaper className="h-3.5 w-3.5" /> },
     { id: "scorecard", label: "Scorecard", icon: <Award className="h-3.5 w-3.5" /> },
     { id: "fundamentals", label: "Fundamentals", icon: <BarChart3 className="h-3.5 w-3.5" /> },
     { id: "shareholding", label: "Shareholding", icon: <PieChart className="h-3.5 w-3.5" /> },
+    { id: "corporate-actions", label: "Actions", icon: <Calendar className="h-3.5 w-3.5" /> },
     { id: "financials", label: "Financials", icon: <Building2 className="h-3.5 w-3.5" /> },
     { id: "analyst", label: "Analyst", icon: <Users className="h-3.5 w-3.5" /> },
   ];
@@ -153,10 +168,17 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
       />
       <StickyScrollLayout hero={heroShell} sections={sections}>
         <StickySection id="overview">
-          <SectionHeader title="Overview" subtitle="Live chart and day statistics" />
-          <PriceChart symbol={symbol} exchange={meta.exchange} />
+          <SectionHeader title="Overview" subtitle="Live chart with moving averages, volume, and RSI" />
+          <PriceChartAdvanced symbol={symbol} exchange={meta.exchange} />
           <Suspense fallback={<SectionSkeleton h={140} />}>
             <DayStats symbol={symbol} exchange={meta.exchange} />
+          </Suspense>
+        </StickySection>
+
+        <StickySection id="peers">
+          <SectionHeader title="Peer comparison" subtitle={`Top ${meta.sector} stocks by market cap`} />
+          <Suspense fallback={<SectionSkeleton h={320} />}>
+            <PeersSection symbol={symbol} sector={meta.sector} />
           </Suspense>
         </StickySection>
 
@@ -199,6 +221,9 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
           <ShareholdingSection symbol={symbol} exchange={meta.exchange} />
         </Suspense>
         <Suspense fallback={<SectionSkeleton />}>
+          <CorporateActionsSection symbol={symbol} exchange={meta.exchange} />
+        </Suspense>
+        <Suspense fallback={<SectionSkeleton />}>
           <FinancialsSection symbol={symbol} exchange={meta.exchange} />
         </Suspense>
         <Suspense fallback={<SectionSkeleton />}>
@@ -206,7 +231,11 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
         </Suspense>
       </StickyScrollLayout>
 
-      <div className="mt-10">
+      <Suspense fallback={null}>
+        <MobileActionBarWrapper symbol={symbol} exchange={meta.exchange} name={meta.name} />
+      </Suspense>
+
+      <div className="mt-10 pb-24 lg:pb-0">
         <Disclaimer variant="bold" />
       </div>
       <Disclaimer className="mt-4" />
@@ -216,35 +245,60 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
 
 // --- Streamed hero sub-blocks ---
 
-async function HeroPrice({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
-  const quote = await getQuote(symbol, exchange);
+async function HeroBlock({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
+  const [quote, fundamentals] = await Promise.all([
+    getQuote(symbol, exchange),
+    getFundamentals(symbol, exchange),
+  ]);
   if (!quote) return null;
-  return <LiveHeroPrice initial={quote} symbol={symbol} exchange={exchange} />;
+  return (
+    <div className="space-y-4">
+      <LiveHeroPrice initial={quote} symbol={symbol} exchange={exchange} />
+      <HeroRangeMini initial={quote} symbol={symbol} exchange={exchange} />
+      <HeroMetrics fundamentals={fundamentals} quote={quote} />
+    </div>
+  );
 }
 
-function HeroPriceSkeleton() {
+const isOnWatchlist = cache(async (symbol: string): Promise<boolean> => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase
+    .from("watchlist_items")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("symbol", symbol)
+    .maybeSingle();
+  return !!data;
+});
+
+async function MobileActionBarWrapper({ symbol, exchange, name }: { symbol: string; exchange: "NSE" | "BSE"; name: string }) {
+  const alreadyAdded = await isOnWatchlist(symbol);
+  return <MobileActionBar symbol={symbol} exchange={exchange} alreadyAdded={alreadyAdded} name={name} />;
+}
+
+function HeroBlockSkeleton() {
   return (
-    <div className="mt-5 space-y-2">
-      <div className="h-9 w-32 shimmer rounded" />
-      <div className="h-6 w-28 shimmer rounded" />
-      <div className="h-3 w-40 shimmer rounded" />
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="h-9 w-32 shimmer rounded" />
+        <div className="h-6 w-28 shimmer rounded" />
+        <div className="h-3 w-40 shimmer rounded" />
+      </div>
+      <div className="h-3 w-full shimmer rounded" />
+      <div className="grid grid-cols-2 gap-2">
+        <div className="h-12 shimmer rounded-lg" />
+        <div className="h-12 shimmer rounded-lg" />
+        <div className="h-12 shimmer rounded-lg" />
+        <div className="h-12 shimmer rounded-lg" />
+      </div>
     </div>
   );
 }
 
 async function HeroActions({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  let alreadyAdded = false;
-  if (user) {
-    const { data } = await supabase
-      .from("watchlist_items")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("symbol", symbol)
-      .maybeSingle();
-    alreadyAdded = !!data;
-  }
+  const alreadyAdded = await isOnWatchlist(symbol);
   return (
     <>
       <AddStockDetailButton symbol={symbol} exchange={exchange} alreadyAdded={alreadyAdded} />
@@ -261,13 +315,19 @@ async function HeroActions({ symbol, exchange }: { symbol: string; exchange: "NS
 async function DayStats({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
   const quote = await getQuote(symbol, exchange);
   if (!quote) return null;
+  const prevClose = quote.lastPrice - quote.change;
+  const changeColor = quote.change >= 0 ? "accent" : "danger";
   return (
     <div className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-5">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat label="Open" value={formatINR(quote.lastPrice - quote.change)} />
+        <Stat label="Prev Close" value={formatINR(prevClose)} />
         <Stat label="Day High" value={formatINR(quote.dayHigh)} />
         <Stat label="Day Low" value={formatINR(quote.dayLow)} />
-        <Stat label="Prev Close" value={formatINR(quote.lastPrice - quote.change)} />
+        <Stat
+          label="Change"
+          value={`${quote.change >= 0 ? "+" : ""}${formatINR(quote.change)}`}
+          color={changeColor}
+        />
       </div>
     </div>
   );
@@ -336,6 +396,21 @@ async function ShareholdingSection({ symbol, exchange }: { symbol: string; excha
 async function PerformanceSection({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
   const history = await fetchYahooHistory(symbol, exchange, "1y");
   return <PerformanceReturns points={history?.points ?? []} />;
+}
+
+async function PeersSection({ symbol, sector }: { symbol: string; sector: import("@/lib/nse-symbols").Sector }) {
+  const peers = await getPeers(symbol, sector, 5);
+  return <PeerComparison currentSymbol={symbol} peers={peers} />;
+}
+
+async function CorporateActionsSection({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {
+  const actions = await fetchCorporateActions(symbol, exchange);
+  return (
+    <StickySection id="corporate-actions">
+      <SectionHeader title="Corporate Actions" subtitle="Dividends, splits, and bonuses over the last 5 years" />
+      <CorporateActions actions={actions} />
+    </StickySection>
+  );
 }
 
 async function FinancialsSection({ symbol, exchange }: { symbol: string; exchange: "NSE" | "BSE" }) {

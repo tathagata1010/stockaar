@@ -4,7 +4,8 @@ import {
   Sparkles, Zap, Bell, TrendingUp, TrendingDown, Activity, Shield,
   Target, BarChart3, Newspaper, LineChart, Search, Bot, ArrowRight,
   CheckCircle2, Star, Quote, Flame, AlertTriangle, Compass, Crown,
-  Coins, Rocket, Trophy, Mail, ChevronRight, PlayCircle,
+  Coins, Rocket, Trophy, Mail, ChevronRight, PlayCircle, Mic, FileText,
+  Minus,
 } from "lucide-react";
 import { APP_NAME, PLANS } from "@/lib/constants";
 import { Footer } from "@/components/Footer";
@@ -22,6 +23,7 @@ import { formatINR } from "@/lib/utils";
 import { getUniverse, type UniverseRow } from "@/lib/universe";
 import { getSectorPerformance, type SectorPerformance } from "@/lib/sectors";
 import { getRedditBuzz, type BuzzItem } from "@/lib/reddit-buzz";
+import { getRecentGuidance, type GuidanceFeedRow } from "@/lib/guidance";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +145,7 @@ export default function HomePage() {
         <TrustStrip />
 
         <AnomaliesSection />
+        <GuidanceSection />
         <HotStocksSection />
         <NewsletterCTA />
         <SectorSpotlights />
@@ -181,6 +184,7 @@ function SiteHeader() {
   const NAV = [
     { href: "#features", label: "Features" },
     { href: "#anomalies", label: "Anomalies" },
+    { href: "#guidance", label: "Guidance" },
     { href: "#pro", label: "Pro" },
     { href: "/learn", label: "Learn" },
     { href: "#pricing", label: "Pricing" },
@@ -544,6 +548,91 @@ async function AnomaliesAsync() {
           </Link>
         );
       })}
+    </div>
+  );
+}
+
+/* -------------------- Guidance -------------------- */
+function GuidanceSection() {
+  return (
+    <section id="guidance" className="mx-auto max-w-6xl px-6 pb-16">
+      <SectionHeader
+        eyebrow={<><Mic className="h-3.5 w-3.5" /> Guidance Tracker</>}
+        title="What Indian CEOs just told the Street."
+        sub="We read every NSE filing — earnings calls, press releases, investor decks — and surface the forward-looking lines that move stocks."
+        href="/guidance"
+      />
+      <Suspense fallback={<CardGridSkeleton n={3} />}>
+        <GuidanceAsync />
+      </Suspense>
+    </section>
+  );
+}
+
+const DIR_TONE: Record<GuidanceFeedRow["direction"], string> = {
+  up: "bg-accent/15 text-accent ring-accent/30",
+  down: "bg-danger/15 text-danger ring-danger/30",
+  flat: "bg-brand/15 text-brand ring-brand/30",
+  mixed: "bg-brand/15 text-brand ring-brand/30",
+};
+
+function DirIcon({ d }: { d: GuidanceFeedRow["direction"] }) {
+  if (d === "up") return <TrendingUp className="h-3 w-3" />;
+  if (d === "down") return <TrendingDown className="h-3 w-3" />;
+  return <Minus className="h-3 w-3" />;
+}
+
+async function GuidanceAsync() {
+  const signals = await getRecentGuidance({ limit: 3 }).catch(() => [] as GuidanceFeedRow[]);
+
+  if (signals.length === 0) {
+    return <p className="mt-8 text-sm text-muted">No fresh guidance signals — the wire is quiet right now.</p>;
+  }
+
+  return (
+    <div className="mt-8 grid gap-4 md:grid-cols-3">
+      {signals.map((s) => (
+        <Link
+          key={s.id}
+          href={`/stock/${s.symbol}`}
+          className="surface group relative overflow-hidden p-5 transition hover:-translate-y-0.5 hover:shadow-pop"
+        >
+          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand to-accent" />
+          <div className="flex items-start justify-between pl-2">
+            <div className="min-w-0">
+              <div className="text-sm font-bold">{s.symbol}</div>
+              <div className="truncate text-[11px] text-muted">{s.filing?.company_name ?? s.symbol}</div>
+            </div>
+            <span className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold ring-1 ${DIR_TONE[s.direction]}`}>
+              <DirIcon d={s.direction} />
+              {s.direction.toUpperCase()}
+            </span>
+          </div>
+          <blockquote className="mt-3 pl-2 text-xs italic leading-relaxed text-fg line-clamp-3">
+            &ldquo;{s.quote}&rdquo;
+          </blockquote>
+          <div className="mt-3 flex flex-wrap gap-1 pl-2">
+            <span className="rounded bg-bg-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted ring-1 ring-border">
+              {s.metric}
+            </span>
+            {s.value_text && (
+              <span className="rounded bg-bg-2 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-fg ring-1 ring-border">
+                {s.value_text}
+              </span>
+            )}
+            {s.timeframe && (
+              <span className="rounded bg-bg-2 px-1.5 py-0.5 text-[10px] font-medium text-muted ring-1 ring-border">
+                {s.timeframe}
+              </span>
+            )}
+          </div>
+          {s.filing?.pdf_url && (
+            <div className="mt-3 flex items-center gap-1 pl-2 text-[10px] uppercase tracking-wider text-brand opacity-0 transition group-hover:opacity-100">
+              <FileText className="h-3 w-3" /> Source filing
+            </div>
+          )}
+        </Link>
+      ))}
     </div>
   );
 }

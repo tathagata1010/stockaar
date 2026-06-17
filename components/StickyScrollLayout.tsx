@@ -28,6 +28,7 @@ export function StickyScrollLayout({
 }) {
   const [active, setActive] = useState<string>(sections[0]?.id ?? "");
   const containerRef = useRef<HTMLDivElement>(null);
+  const lockUntilRef = useRef<number>(0);
 
   useEffect(() => {
     const els = sections
@@ -37,7 +38,7 @@ export function StickyScrollLayout({
 
     const io = new IntersectionObserver(
       (entries) => {
-        // Pick entry whose top is closest to viewport top within band
+        if (Date.now() < lockUntilRef.current) return;
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
@@ -52,9 +53,9 @@ export function StickyScrollLayout({
   function go(id: string) {
     const el = document.getElementById(id);
     if (!el) return;
-    const y = el.getBoundingClientRect().top + window.scrollY - 80;
-    window.scrollTo({ top: y, behavior: "smooth" });
     setActive(id);
+    lockUntilRef.current = Date.now() + 900;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
@@ -155,7 +156,7 @@ export function StickyScrollLayout({
 
 export function StickySection({ id, children, className }: { id: string; children: ReactNode; className?: string }) {
   return (
-    <section id={id} className={cn("scroll-mt-24", className)}>
+    <section id={id} className={cn("scroll-mt-28", className)}>
       {children}
     </section>
   );

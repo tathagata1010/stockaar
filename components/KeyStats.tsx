@@ -12,28 +12,39 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export function KeyStats({ f }: { f: Fundamentals }) {
   const dash = "—";
+  const num = (v: number | undefined | null) => (Number.isFinite(v) ? (v as number) : null);
+  const marketCap = num(f.marketCap);
+  const trailingPE = num(f.trailingPE);
+  const forwardPE = num(f.forwardPE);
+  const trailingEps = num(f.trailingEps);
+  const priceToBook = num(f.priceToBook);
+  const dividendYield = num(f.dividendYield);
+  const beta = num(f.beta);
+  const yearHigh = num(f.yearHigh);
+  const yearLow = num(f.yearLow);
+  const roe = num(f.returnOnEquity);
   return (
     <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
       <h3 className="text-sm font-semibold">Key Statistics</h3>
       <div className="mt-3 grid gap-x-8 md:grid-cols-2">
         <div>
-          <Row label="Market Cap" value={f.marketCap ? formatCompactINR(f.marketCap) : dash} />
-          <Row label="P/E (Trailing)" value={f.trailingPE ? formatNumber(f.trailingPE) : dash} />
-          <Row label="P/E (Forward)" value={f.forwardPE ? formatNumber(f.forwardPE) : dash} />
-          <Row label="EPS (TTM)" value={f.trailingEps ? formatNumber(f.trailingEps) : dash} />
-          <Row label="Price / Book" value={f.priceToBook ? formatNumber(f.priceToBook) : dash} />
+          <Row label="Market Cap" value={marketCap != null ? formatCompactINR(marketCap) : dash} />
+          <Row label="P/E (Trailing)" value={trailingPE != null ? formatNumber(trailingPE) : dash} />
+          <Row label="P/E (Forward)" value={forwardPE != null ? formatNumber(forwardPE) : dash} />
+          <Row label="EPS (TTM)" value={trailingEps != null ? formatNumber(trailingEps) : dash} />
+          <Row label="Price / Book" value={priceToBook != null ? formatNumber(priceToBook) : dash} />
         </div>
         <div>
           <Row
             label="Dividend Yield"
-            value={f.dividendYield ? `${(f.dividendYield * 100).toFixed(2)}%` : dash}
+            value={dividendYield != null ? `${(dividendYield * 100).toFixed(2)}%` : dash}
           />
-          <Row label="Beta" value={f.beta ? formatNumber(f.beta) : dash} />
-          <Row label="52W High" value={f.yearHigh ? formatCompactINR(f.yearHigh) : dash} />
-          <Row label="52W Low" value={f.yearLow ? formatCompactINR(f.yearLow) : dash} />
+          <Row label="Beta" value={beta != null ? formatNumber(beta) : dash} />
+          <Row label="52W High" value={yearHigh != null ? formatCompactINR(yearHigh) : dash} />
+          <Row label="52W Low" value={yearLow != null ? formatCompactINR(yearLow) : dash} />
           <Row
             label="ROE"
-            value={f.returnOnEquity ? `${(f.returnOnEquity * 100).toFixed(2)}%` : dash}
+            value={roe != null ? `${(roe * 100).toFixed(2)}%` : dash}
           />
         </div>
       </div>

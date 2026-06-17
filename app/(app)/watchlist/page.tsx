@@ -50,9 +50,12 @@ export default function WatchlistPage() {
 const loadCore = cache(async () => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { items: [], plan: "free" as keyof typeof PLANS, maxItems: PLANS.free.maxWatchlistItems, used: 0 };
+  }
   const [{ data: items }, { data: profile }] = await Promise.all([
     supabase.from("watchlist_items").select("*").order("added_at", { ascending: false }),
-    supabase.from("profiles").select("plan").eq("user_id", user!.id).single(),
+    supabase.from("profiles").select("plan").eq("user_id", user.id).single(),
   ]);
   const plan = (profile?.plan ?? "free") as keyof typeof PLANS;
   const maxItems = PLANS[plan].maxWatchlistItems;
