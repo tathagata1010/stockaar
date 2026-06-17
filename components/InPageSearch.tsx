@@ -50,30 +50,32 @@ export function InPageSearch({
   };
 
   return (
-    <div className={cn("relative w-full", className)}>
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-      <input
-        ref={inputRef}
-        type="search"
-        value={value}
-        onChange={(e) => { setValue(e.target.value); push(e.target.value); }}
-        onKeyDown={(e) => { if (e.key === "Escape") { setValue(""); push(""); inputRef.current?.blur(); } }}
-        placeholder={placeholder}
-        aria-label={placeholder}
-        className="w-full rounded-lg border border-border bg-card/60 py-2 pl-9 pr-10 text-sm text-fg placeholder:text-muted/70 focus:border-brand/50 focus:outline-none focus:ring-2 focus:ring-brand/20"
-      />
-      <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
-        {pending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted" />}
-        {value && (
-          <button
-            type="button"
-            onClick={() => { setValue(""); push(""); inputRef.current?.focus(); }}
-            className="rounded p-0.5 text-muted hover:bg-border/40 hover:text-fg"
-            aria-label="Clear filter"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
+    <div className={cn("w-full", className)}>
+      <div className="relative w-full">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+        <input
+          ref={inputRef}
+          type="search"
+          value={value}
+          onChange={(e) => { setValue(e.target.value); push(e.target.value); }}
+          onKeyDown={(e) => { if (e.key === "Escape") { setValue(""); push(""); inputRef.current?.blur(); } }}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          className="w-full rounded-lg border border-border bg-card/60 py-2 pl-9 pr-10 text-sm text-fg placeholder:text-muted/70 focus:border-brand/50 focus:outline-none focus:ring-2 focus:ring-brand/20"
+        />
+        <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+          {pending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted" />}
+          {value && (
+            <button
+              type="button"
+              onClick={() => { setValue(""); push(""); inputRef.current?.focus(); }}
+              className="rounded p-0.5 text-muted hover:bg-border/40 hover:text-fg"
+              aria-label="Clear filter"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
       {hint && !value && (
         <p className="mt-1.5 text-[11px] text-muted">{hint}</p>

@@ -3,9 +3,13 @@
 
 const ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions";
 
-// Free, high-quality models on NVIDIA NIM. Override with NVIDIA_MODEL env var.
+// Free, large-context model on NVIDIA NIM. Llama-4 Maverick is MoE
+// (17B active / 400B total, 128 experts) — best free quality+speed combo,
+// with a 1M-token context window so long PDFs don't need aggressive trimming.
+// Override via NVIDIA_MODEL env (alternates: nvidia/llama-3.1-nemotron-70b-instruct,
+// meta/llama-3.1-405b-instruct, qwen/qwen2.5-72b-instruct).
 export const NVIDIA_MODEL =
-  process.env.NVIDIA_MODEL || "meta/llama-3.3-70b-instruct";
+  process.env.NVIDIA_MODEL || "meta/llama-4-maverick-17b-128e-instruct";
 
 export type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
 

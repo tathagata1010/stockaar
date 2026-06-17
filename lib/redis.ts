@@ -19,4 +19,41 @@ const noopRedis = {
   }),
 } as unknown as Redis;
 
-export const redis: Redis = url && token ? new Redis({ url, token }) : noopRedis;
+// Wrap the live Upstash client so command errors (e.g. monthly request-cap
+// exceeded on the free tier) degrade to cache-miss behavior instead of
+// 500ing pages. Reads return null, writes silently no-op.
+function makeResilientRedis(real: Redis): Redis {
+  let warned = false;
+  const onErr = (e: unknown, op: string) => {
+    if (!warned) {
+      console.warn(`[redis] command failed (${op}) — degrading to cache-miss:`, (e as Error).message?.slice(0, 200));
+      warned = true;
+    }
+  };
+  return new Proxy(real, {
+    get(target, prop, receiver) {
+      const orig = Reflect.get(target, prop, receiver);
+      if (typeof orig !== "function") return orig;
+      return (...args: unknown[]) => {
+        try {
+          const out = orig.apply(target, args);
+          if (out instanceof Promise) {
+            return out.catch((e) => {
+              onErr(e, String(prop));
+              if (prop === "get" || prop === "mget") return prop === "mget" ? args.map(() => null) : null;
+              if (prop === "incr" || prop === "del" || prop === "expire") return 0;
+              return "OK";
+            });
+          }
+          return out;
+        } catch (e) {
+          onErr(e, String(prop));
+          return prop === "get" ? null : prop === "mget" ? (args as unknown[]).map(() => null) : 0;
+        }
+      };
+    },
+  });
+}
+
+export const redis: Redis =
+  url && token ? makeResilientRedis(new Redis({ url, token })) : noopRedis;

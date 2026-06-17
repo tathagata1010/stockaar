@@ -5,20 +5,30 @@ type SendArgs = {
   subject: string;
   html: string;
   text?: string;
+  replyTo?: string;
 };
 
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
 
-export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<
+export async function sendEmail({ to, subject, html, text, replyTo }: SendArgs): Promise<
   { ok: true; id?: string } | { ok: false; error: string }
 > {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM || "stockaarin@gmail.com";
+  const from = process.env.EMAIL_FROM || "onboarding@resend.dev";
   if (!apiKey) {
     console.warn("[email] RESEND_API_KEY missing — skipping send", { to, subject });
     return { ok: false, error: "email not configured" };
+  }
+  // Resend rejects free-mail senders (gmail/yahoo/outlook) unless the domain
+  // is verified. Surface this loudly — the API will otherwise either 403 or
+  // silently fall back to onboarding@resend.dev depending on account state.
+  if (/@(gmail|yahoo|outlook|hotmail|icloud)\.com$/i.test(from)) {
+    console.error(
+      "[email] EMAIL_FROM is a free-mail address — Resend will reject or rewrite it. Verify a domain at https://resend.com/domains and set EMAIL_FROM=newsletter@yourdomain.",
+      { from },
+    );
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -27,7 +37,14 @@ export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from, to, subject, html, text }),
+    body: JSON.stringify({
+      from,
+      to,
+      subject,
+      html,
+      text,
+      reply_to: replyTo || process.env.EMAIL_REPLY_TO || undefined,
+    }),
   });
 
   if (!res.ok) {

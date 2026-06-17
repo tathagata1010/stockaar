@@ -17,6 +17,8 @@ export async function GET(req: Request) {
   }
   const url = new URL(req.url);
   const days = Number(url.searchParams.get("days") ?? "2");
-  const stats = await ingestRecentFilings({ days });
+  const limit = Number(url.searchParams.get("limit") ?? "50");
+  const concurrency = Number(url.searchParams.get("concurrency") ?? "6");
+  const stats = await ingestRecentFilings({ days, limit, concurrency });
   return NextResponse.json(stats);
 }

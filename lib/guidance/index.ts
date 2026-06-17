@@ -40,7 +40,7 @@ function adminClient(): SupabaseClient | null {
   return createServiceClient(url, key, { auth: { persistSession: false } });
 }
 
-export async function ingestRecentFilings(opts: { days?: number } = {}): Promise<IngestStats> {
+export async function ingestRecentFilings(opts: { days?: number; limit?: number; concurrency?: number } = {}): Promise<IngestStats> {
   const t0 = Date.now();
   const stats: IngestStats = { fetched: 0, inserted: 0, extracted: 0, signals: 0, failed: 0, ms: 0 };
   const admin = adminClient();
@@ -48,7 +48,9 @@ export async function ingestRecentFilings(opts: { days?: number } = {}): Promise
     stats.ms = Date.now() - t0;
     return stats;
   }
-  const days = Math.max(1, Math.min(7, opts.days ?? 2));
+  const days = Math.max(1, Math.min(30, opts.days ?? 2));
+  const perRunLimit = Math.max(1, Math.min(300, opts.limit ?? 50));
+  const concurrency = Math.max(1, Math.min(12, opts.concurrency ?? 6));
   const now = new Date();
   const from = new Date(now.getTime() - days * 86_400_000);
 
@@ -69,79 +71,95 @@ export async function ingestRecentFilings(opts: { days?: number } = {}): Promise
   }
 
   // Pull the pending set (newly inserted + any past failures we want to retry).
-  // Cap to avoid blowing past the 60s cron budget.
+  // Cap to the per-run limit; parallel extraction below stays within maxDuration.
   const { data: pending, error: pendErr } = await admin
     .from("filings")
     .select("id, symbol, headline, text_body, body:text_body, pdf_url, filed_at")
     .in("status", ["pending", "failed"])
     .order("filed_at", { ascending: false })
-    .limit(10);
+    .limit(perRunLimit);
   if (pendErr) {
     console.warn("[guidance] pending fetch error", pendErr.message);
     stats.ms = Date.now() - t0;
     return stats;
   }
 
-  // Build a quick lookup so we can recover body text for filings we just upserted
-  // (Supabase upsert+ignoreDuplicates won't return rows reliably).
-
-  for (const row of pending ?? []) {
-    const headline = (row.headline as string | null) ?? "";
-    const blurb = (row.text_body as string | null) ?? "";
-    const pdfUrl = (row.pdf_url as string | null) ?? null;
-
-    // Skip obvious regulatory noise (schedule intimations, tax notices, SAST,
-    // insider-trading disclosures) before we burn an LLM call.
-    if (isLikelyNoise(headline, blurb)) {
-      await admin
-        .from("filings")
-        .update({ status: "skipped", extracted_at: new Date().toISOString() })
-        .eq("id", row.id);
-      continue;
-    }
-
-    // Pull the PDF when there's one and the inline blurb is too thin to carry
-    // a real signal. Transcripts, decks, and press releases all live in PDFs.
-    let body = blurb;
-    if (pdfUrl && blurb.length < 400) {
-      const pdfText = await fetchPdfText(pdfUrl);
-      if (pdfText && pdfText.length > blurb.length) body = pdfText;
-    }
-
-    const signals = await extractGuidance({ headline, body });
-    if (signals === null) {
-      stats.failed++;
-      await admin
-        .from("filings")
-        .update({ status: "failed", error: "extractor returned null" })
-        .eq("id", row.id);
-      continue;
-    }
-    stats.extracted++;
-    if (signals.length > 0 && row.symbol) {
-      const insertRows = signals.map((s) => ({
-        filing_id: row.id,
-        symbol: row.symbol,
-        metric: s.metric,
-        direction: s.direction,
-        value_text: s.value_text ?? null,
-        timeframe: s.timeframe ?? null,
-        quote: s.quote,
-        confidence: s.confidence,
-        filed_at: row.filed_at,
-      }));
-      const { error: insErr } = await admin.from("guidance_signals").insert(insertRows);
-      if (insErr) console.warn("[guidance] insert signals error", insErr.message);
-      else stats.signals += insertRows.length;
-    }
-    await admin
-      .from("filings")
-      .update({ status: signals.length === 0 ? "skipped" : "extracted", extracted_at: new Date().toISOString() })
-      .eq("id", row.id);
-  }
+  // Process N filings in parallel. Each filing = 1 PDF fetch + 1 LLM call,
+  // so concurrency=6 fits comfortably under the 60s maxDuration even with
+  // ~5s/extract while staying polite to NVIDIA's free-tier rate limits.
+  const queue = [...(pending ?? [])];
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      while (queue.length > 0) {
+        const row = queue.shift();
+        if (!row) return;
+        await processFiling(admin, row, stats);
+      }
+    }),
+  );
 
   stats.ms = Date.now() - t0;
   return stats;
+}
+
+type PendingRow = {
+  id: string;
+  symbol: string | null;
+  headline: string | null;
+  text_body: string | null;
+  pdf_url: string | null;
+  filed_at: string;
+};
+
+async function processFiling(admin: SupabaseClient, row: PendingRow, stats: IngestStats): Promise<void> {
+  const headline = row.headline ?? "";
+  const blurb = row.text_body ?? "";
+  const pdfUrl = row.pdf_url;
+
+  if (isLikelyNoise(headline, blurb)) {
+    await admin
+      .from("filings")
+      .update({ status: "skipped", extracted_at: new Date().toISOString() })
+      .eq("id", row.id);
+    return;
+  }
+
+  let body = blurb;
+  if (pdfUrl && blurb.length < 400) {
+    const pdfText = await fetchPdfText(pdfUrl);
+    if (pdfText && pdfText.length > blurb.length) body = pdfText;
+  }
+
+  const signals = await extractGuidance({ headline, body });
+  if (signals === null) {
+    stats.failed++;
+    await admin
+      .from("filings")
+      .update({ status: "failed", error: "extractor returned null" })
+      .eq("id", row.id);
+    return;
+  }
+  stats.extracted++;
+  if (signals.length > 0 && row.symbol) {
+    const insertRows = signals.map((s) => ({
+      filing_id: row.id,
+      symbol: row.symbol,
+      metric: s.metric,
+      direction: s.direction,
+      value_text: s.value_text ?? null,
+      timeframe: s.timeframe ?? null,
+      quote: s.quote,
+      confidence: s.confidence,
+      filed_at: row.filed_at,
+    }));
+    const { error: insErr } = await admin.from("guidance_signals").insert(insertRows);
+    if (insErr) console.warn("[guidance] insert signals error", insErr.message);
+    else stats.signals += insertRows.length;
+  }
+  await admin
+    .from("filings")
+    .update({ status: signals.length === 0 ? "skipped" : "extracted", extracted_at: new Date().toISOString() })
+    .eq("id", row.id);
 }
 
 function nseToRow(f: NseFiling) {
@@ -181,7 +199,7 @@ export async function getRecentGuidance({
       "id, symbol, metric, direction, value_text, timeframe, quote, confidence, filed_at, filing:filings(company_name, category, headline, pdf_url)",
     )
     .order("filed_at", { ascending: false })
-    .limit(Math.max(1, Math.min(200, limit)));
+    .limit(Math.max(1, Math.min(1000, limit)));
   if (direction) q = q.eq("direction", direction);
   if (symbol) q = q.eq("symbol", symbol);
   const { data, error } = await q;

@@ -45,8 +45,10 @@ Rules:
 6. If nothing qualifies, output { "signals": [] }.`;
 
 function userPrompt(headline: string, body: string): string {
-  // Cap input at ~12k chars to keep latency + token cost predictable.
-  const trimmedBody = body.length > 12000 ? body.slice(0, 12000) + " …" : body;
+  // Maverick has a 1M-token context. Keep input at ~60k chars (≈15k tokens)
+  // to fit a full concall transcript without truncation while leaving room
+  // for the system prompt + a generous output budget.
+  const trimmedBody = body.length > 60000 ? body.slice(0, 60000) + " …" : body;
   return `COMPANY FILING
 
 Headline:
@@ -87,7 +89,7 @@ export async function extractGuidance({
       { role: "system", content: SYSTEM },
       { role: "user", content: userPrompt(headline, text) },
     ],
-    { maxTokens: 1200, temperature: 0.1 },
+    { maxTokens: 4000, temperature: 0.1 },
   );
   if (!raw) return null;
 

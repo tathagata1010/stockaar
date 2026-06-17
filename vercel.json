@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/warm-universe",
-      "schedule": "*/10 * * * *"
+      "schedule": "30 2 * * *"
     }
   ]
 }
