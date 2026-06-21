@@ -47,7 +47,7 @@ export type AIBrief = {
 };
 
 const TTL = 60 * 60 * 6;
-const CACHE_VERSION = "v6";
+const CACHE_VERSION = "v7";
 
 function computeFallbackScenarios(
   price: number | null,
@@ -164,10 +164,10 @@ ${newsBlock}
 TASK
 Return ONLY valid JSON (no markdown fences, no prose around it) with this exact shape:
 {
-  "summary": "2-3 sentence neutral overview tying company, sector position, and what data + news collectively say now.",
-  "bullPoints": ["3-4 short bull points; cite specific numbers or news"],
-  "bearPoints": ["3-4 short bear points / risks; cite specifics"],
-  "takeaway": "1 sentence: what a retail investor should watch next (catalyst, level, upcoming event).",
+  "summary": "2-3 sentences (max 60 words) that tell the CURRENT STORY of this stock — what's actually happening RIGHT NOW. Name a recent headline driver, a fresh number that just shifted, or the live sector dynamic. NO 'company operates in X sector' filler. NO generic platitudes. Make it feel like a senior friend explaining over chai why this stock matters today.",
+  "bullPoints": ["3-4 specific bull points (<=18 words each); each names a concrete number, recent news theme, or upcoming catalyst — never a generic strength"],
+  "bearPoints": ["3-4 specific bear points / risks (<=18 words each); cite specifics — D/E figure, margin trend, regulatory headline, sector overhang"],
+  "takeaway": "1-2 sentences (max 40 words) on the FORWARD SETUP — the catalyst, level, sector cycle or risk vector to watch over the next 1-3 months. Forward-looking, never a price call.",
   "latestUpdate": "1-2 sentence synthesis of the freshest material news. If headlines have nothing concrete, say 'No material news in the last 24-48 hours.'",
   "riskLevel": "Low | Medium | High — based on debt, volatility, sector cyclicality.",
   "moat": "<=18 words on competitive position / what protects this business (brand, scale, regulation, network).",
@@ -189,11 +189,11 @@ Return ONLY valid JSON (no markdown fences, no prose around it) with this exact 
 Scenario PRICE GUIDANCE: anchor on current price and 52W range. Bull typically +10% to +30%, Base near current ±5%, Bear -10% to -25%. Numbers must be plain INR, no currency symbol, no commas.
 
 RULES
-- Each bullet <= 18 words.
-- Reference real numbers from the data block where possible.
-- Do NOT give buy/sell advice. Do NOT predict prices. Frame as observations.
+- Each bullet <= 18 words and MUST cite a specific number, named headline, or concrete event. No "strong fundamentals" / "good company" / "well managed" generic phrasing.
+- The summary and takeaway must feel CURRENT — tied to recent headlines or fresh data, not evergreen company description.
+- If news headlines exist, at least one bull or bear point AND the latestUpdate must reflect their themes by name.
+- NEVER use the words "buy", "sell", "target", or predict specific future prices outside the scenarios block. Frame as "watch for", "monitor", "if X then Y observation". This is SEBI-restricted territory.
 - The latestUpdate field must reflect actual headlines above, not generic statements.
-- If news headlines exist, reflect their themes in at least one bull or bear point.
 - Plain text only, no markdown inside strings.
 - Output JSON only. No preamble, no explanation, no code fences.`;
 }
@@ -333,7 +333,7 @@ export async function getAIBrief(
       [
         {
           role: "system",
-          content: "You are a careful Indian-equity analyst. You ALWAYS respond with strict JSON only. Never use markdown fences. Never give buy/sell advice; only neutral observations.",
+          content: "You are a senior Indian-equity analyst writing punchy, story-driven briefs for retail investors. You ALWAYS respond with strict JSON only — no markdown fences. You cite specific recent news and concrete numbers, never generic platitudes. SEBI rules forbid buy/sell calls and specific price predictions outside the explicit scenarios block.",
         },
         { role: "user", content: prompt },
       ],

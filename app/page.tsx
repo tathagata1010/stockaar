@@ -74,7 +74,7 @@ const TESTIMONIALS = [
 ];
 
 const FAQS = [
-  { q: "Where does the data come from?", a: "Prices and fundamentals from Yahoo Finance (NSE/BSE, ~15-min delay). Refreshed every 60 seconds, cached server-side so the app stays snappy." },
+  { q: "Where does the data come from?", a: "Prices and fundamentals from Yahoo Finance (NSE/BSE, ~15-min delay). Live on every request, with short-lived server caching so the app stays snappy." },
   { q: "Is this SEBI registered?", a: "We provide market data and analytics — not buy/sell recommendations. Nothing on the platform is investment advice. Read our Disclaimer before acting on any view." },
   { q: "Can I cancel anytime?", a: "Yes. One-click cancel from Account → Billing. Your Pro features stay active until the end of the current billing cycle." },
   { q: "Do you support BSE-only stocks?", a: "Yes. Search supports both exchanges. NSE is preferred when both are listed (better depth). You can add either to your watchlist." },
@@ -153,7 +153,7 @@ export default function HomePage() {
         <ProSection />
         <FeatureGrid />
         <InvestorFit />
-        <PricingSection />
+        {/* <PricingSection /> */}
         <TestimonialsSection />
         <FAQSection />
         <FinalCTA />
@@ -229,7 +229,7 @@ function Hero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
             </span>
-            <span className="text-muted">Live NSE / BSE · refreshed every 60s</span>
+            <span className="text-muted">Live NSE / BSE · prices update on every page load</span>
           </div>
           <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
             Know exactly what to do with{" "}
@@ -307,8 +307,7 @@ async function FloatingChipsAsync() {
 
 async function PreviewWatchlistAsync() {
   const stocks = await fetchHeroStocks();
-  const leadName = stocks[0]?.name ?? "your portfolio";
-  return <PreviewWatchlist stocks={stocks} leadName={leadName} />;
+  return <PreviewWatchlist stocks={stocks} />;
 }
 
 function PreviewSkeleton() {
@@ -351,7 +350,7 @@ function FloatingChip({ className, sym, sector, signal }: {
   );
 }
 
-function PreviewWatchlist({ stocks, leadName }: { stocks: LiveStock[]; leadName: string }) {
+function PreviewWatchlist({ stocks }: { stocks: LiveStock[] }) {
   const lead = stocks[0];
   // Compute scenario prices from the lead's live price (deterministic fallback, same model as ai-brief).
   const leadPrice = lead?.price ?? null;
@@ -419,8 +418,13 @@ function PreviewWatchlist({ stocks, leadName }: { stocks: LiveStock[]; leadName:
         </table>
       </div>
       <aside className="border-l border-border bg-bg/40 p-5">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-brand">
-          <Bot className="h-3.5 w-3.5" /> AI Brief · {lead?.symbol ?? "RELIANCE"}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-brand">
+            <Bot className="h-3.5 w-3.5" /> AI Brief · {lead?.symbol ?? "RELIANCE"}
+          </div>
+          <span className="rounded-full border border-border bg-bg/60 px-2 py-0.5 text-[9px] uppercase tracking-wider text-muted">
+            Sample
+          </span>
         </div>
         <div className="mt-3 flex items-center gap-2">
           <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ${
@@ -430,17 +434,16 @@ function PreviewWatchlist({ stocks, leadName }: { stocks: LiveStock[]; leadName:
           }`}>{leadSig}</span>
           <span className="text-[11px] text-muted">Risk · Medium</span>
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-fg">
-          {leadName} — retail business is firing on all cylinders post Q4. Jio AGR at industry highs.
-          O2C margins compressed but next-quarter is the trough — refinery utilisation recovers in Jun.
+        <p className="mt-3 text-xs leading-relaxed text-fg/85">
+          Real per-stock AI briefs go here — bull/bear cases, named catalysts, fresh news themes, and 12-month scenarios — generated on demand once you sign in.
         </p>
         <div className="mt-4 grid grid-cols-3 gap-2">
           <ScenarioBox label="Bull" val={bull !== null ? formatINR(bull) : "—"} pct="+16%" tone="up" />
           <ScenarioBox label="Base" val={base !== null ? formatINR(base) : "—"} pct="+7%" tone="brand" />
           <ScenarioBox label="Bear" val={bear !== null ? formatINR(bear) : "—"} pct="-10%" tone="down" />
         </div>
-        <div className="mt-4 rounded-lg border border-brand/30 bg-brand/5 p-2.5 text-[11px] text-fg">
-          <span className="font-semibold text-brand">Catalyst:</span> JFS demerger record date — next 2 weeks.
+        <div className="mt-4 rounded-lg border border-brand/30 bg-brand/5 p-2.5 text-[11px] text-muted">
+          <span className="font-semibold text-brand">Inside:</span> live catalysts, sector tilts, and earnings dates per stock.
         </div>
       </aside>
     </div>
@@ -464,8 +467,8 @@ function ScenarioBox({ label, val, pct, tone }: { label: string; val: string; pc
 /* -------------------- Trust strip -------------------- */
 function TrustStrip() {
   const stats = [
-    { v: "593+", l: "NSE stocks covered" },
-    { v: "60s", l: "Live price refresh" },
+    { v: `${NSE_SYMBOLS.length}+`, l: "NSE stocks covered" },
+    { v: "Live", l: "Prices on every load" },
     { v: "4-pillar", l: "Scorecard model" },
     { v: "₹0", l: "To get started" },
   ];

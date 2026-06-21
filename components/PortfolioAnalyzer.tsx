@@ -1,42 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { cn, formatINR, formatPct, formatCompactINR } from "@/lib/utils";
-import { AlertTriangle, BarChart3, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { AlertTriangle, BarChart3, Loader2, TrendingUp, TrendingDown, Stethoscope } from "lucide-react";
 import { StockLogo } from "@/components/StockLogo";
 import type { Sector } from "@/lib/nse-symbols";
-
-type Holding = { symbol: string; qty: number; avg: number };
-type Quote = { symbol: string; lastPrice: number; changePct: number };
+import { parseCsv as parseHoldings, analyze as analyzePortfolio, type Quote } from "@/lib/doctor/portfolio";
+import type { Holding } from "@/lib/doctor/schema";
 
 const SAMPLE = `RELIANCE,10,2400
 TCS,5,3500
 HDFCBANK,15,1450
 INFY,8,1600`;
-
-function parseHoldings(text: string): { holdings: Holding[]; errors: string[] } {
-  const errors: string[] = [];
-  const holdings: Holding[] = [];
-  const lines = text.split(/\r?\n/);
-  lines.forEach((line, i) => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    const parts = trimmed.split(",").map((p) => p.trim());
-    if (parts.length < 3) {
-      errors.push(`Line ${i + 1}: expected SYMBOL,QTY,AVG_PRICE`);
-      return;
-    }
-    const [sym, qtyStr, avgStr] = parts;
-    const qty = Number(qtyStr);
-    const avg = Number(avgStr);
-    if (!sym || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(avg) || avg <= 0) {
-      errors.push(`Line ${i + 1}: invalid numbers`);
-      return;
-    }
-    holdings.push({ symbol: sym.toUpperCase(), qty, avg });
-  });
-  return { holdings, errors };
-}
 
 export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<string, string> }) {
   const [text, setText] = useState("");
@@ -77,49 +53,7 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
 
   const analysis = useMemo(() => {
     if (!submittedHoldings) return null;
-    let invested = 0;
-    let current = 0;
-    const baseRows = submittedHoldings.map((h) => {
-      const q = quotes[h.symbol];
-      const cur = q ? q.lastPrice * h.qty : 0;
-      const inv = h.avg * h.qty;
-      invested += inv;
-      current += cur;
-      const pl = cur - inv;
-      const plPct = inv > 0 ? (pl / inv) * 100 : 0;
-      return {
-        ...h,
-        currentPrice: q?.lastPrice,
-        currentValue: cur,
-        invested: inv,
-        pl,
-        plPct,
-        sector: sectorBySymbol[h.symbol] ?? "Unknown",
-        priceMissing: !q,
-      };
-    });
-    const rows = baseRows.map((r) => ({
-      ...r,
-      conc: current > 0 ? (r.currentValue / current) * 100 : 0,
-    }));
-    const pl = current - invested;
-    const plPct = invested > 0 ? (pl / invested) * 100 : 0;
-
-    const bySector: Record<string, number> = {};
-    for (const r of rows) bySector[r.sector] = (bySector[r.sector] ?? 0) + r.currentValue;
-    const sectorBreakdown = Object.entries(bySector)
-      .map(([sector, value]) => ({ sector, value, pct: current > 0 ? (value / current) * 100 : 0 }))
-      .sort((a, b) => b.value - a.value);
-
-    const warnings: string[] = [];
-    for (const r of rows) {
-      if (r.conc > 25) warnings.push(`${r.symbol} is ${r.conc.toFixed(1)}% of portfolio — consider trimming below 25%.`);
-    }
-    for (const s of sectorBreakdown) {
-      if (s.pct > 40) warnings.push(`${s.sector} sector is ${s.pct.toFixed(1)}% of portfolio — consider diversifying below 40%.`);
-    }
-
-    return { rows, invested, current, pl, plPct, sectorBreakdown, warnings };
+    return analyzePortfolio(submittedHoldings, quotes, sectorBySymbol);
   }, [submittedHoldings, quotes, sectorBySymbol]);
 
   return (
@@ -209,7 +143,6 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
             <section className="surface overflow-hidden rounded-2xl shadow-soft">
               <div className="overflow-x-auto">
                 <div className="min-w-[820px]">
-                  {/* Header */}
                   <div className="grid grid-cols-[minmax(0,2.2fr)_60px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)] items-center gap-x-3 border-b border-border bg-card/60 px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted">
                     <div className="text-left font-semibold">Symbol</div>
                     <div className="text-right font-semibold">Qty</div>
@@ -219,7 +152,6 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
                     <div className="text-right font-semibold">P/L</div>
                     <div className="text-right font-semibold">% Port</div>
                   </div>
-                  {/* Rows */}
                   {analysis.rows.map((r) => {
                     const up = r.pl >= 0;
                     return (
@@ -291,6 +223,22 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
                 ))}
               </ul>
             </section>
+
+            <Link
+              href="/tools/doctor"
+              className="surface group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-brand/40 bg-gradient-to-br from-brand/10 to-brand-2/5 p-5 transition hover:-translate-y-0.5 hover:border-brand"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand ring-1 ring-brand/30">
+                <Stethoscope className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-fg">Want a brutally honest second opinion?</p>
+                <p className="mt-0.5 text-xs text-muted">
+                  Try the Portfolio Doctor — AI-powered red flags, sector tilt vs Nifty, and rebalance suggestions.
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-brand">Try Doctor →</span>
+            </Link>
           </>
         )}
       </div>

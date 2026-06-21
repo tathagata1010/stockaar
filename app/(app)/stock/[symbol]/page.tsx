@@ -363,8 +363,8 @@ async function FundamentalsSection({ symbol, exchange }: { symbol: string; excha
       <SectionHeader title="Fundamentals" subtitle="Key metrics and 52-week range" />
       <div className="space-y-5">
         {quote && (
-          <LazyMount minHeight={120}>
-            <WhyCareToday quote={quote} fundamentals={fundamentals} />
+          <LazyMount minHeight={180}>
+            <WhyCareToday symbol={symbol} exchange={exchange} quote={quote} fundamentals={fundamentals} />
           </LazyMount>
         )}
         {quote && yearHigh && yearLow && (

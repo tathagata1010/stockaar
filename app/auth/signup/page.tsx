@@ -51,6 +51,11 @@ export default function SignupPage() {
         {state?.error && (
           <div className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
             {state.error}
+            {state.error.toLowerCase().includes("too many attempts") && (
+              <div className="mt-1 text-xs text-danger/80">
+                Tip: Google sign-in above bypasses this limit.
+              </div>
+            )}
           </div>
         )}
 
