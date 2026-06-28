@@ -17,6 +17,7 @@ export type Quote = {
   dayLow: number;
   yearHigh?: number;
   yearLow?: number;
+  volume?: number;
   updatedAt: number;
 };
 
@@ -165,6 +166,7 @@ async function fetchYahooV7Bulk(
             dayLow: Number(r.regularMarketDayLow ?? lastPrice),
             yearHigh: Number(r.fiftyTwoWeekHigh) || undefined,
             yearLow: Number(r.fiftyTwoWeekLow) || undefined,
+            volume: Number(r.regularMarketVolume) || undefined,
             updatedAt: Date.now(),
           });
         }
@@ -209,6 +211,7 @@ async function fetchYahooChartFallback(
             dayLow: Number(meta.regularMarketDayLow ?? lastPrice),
             yearHigh: Number(meta.fiftyTwoWeekHigh) || undefined,
             yearLow: Number(meta.fiftyTwoWeekLow) || undefined,
+            volume: Number(meta.regularMarketVolume) || undefined,
             updatedAt: Date.now(),
           };
           return q;

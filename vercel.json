@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/warm-universe",
       "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/cron/check-alerts",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

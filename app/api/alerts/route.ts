@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { PLANS, type PlanId } from "@/lib/constants";
-
-const createSchema = z.object({
-  symbol: z.string().trim().toUpperCase().min(1).max(20),
-  exchange: z.enum(["NSE", "BSE"]).default("NSE"),
-  condition: z.enum(["above", "below"]),
-  target_price: z.coerce.number().positive().max(1_000_000),
-});
+import { CreateAlertBodySchema } from "@/lib/alerts/schema";
 
 export async function GET() {
   const supabase = await createClient();
@@ -17,7 +10,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("alerts")
-    .select("id, symbol, exchange, condition, target_price, status, created_at, triggered_at")
+    .select("id, symbol, exchange, label, triggers, status, last_notified_at, created_at")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -29,7 +22,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const parsed = createSchema.safeParse(await request.json().catch(() => ({})));
+  const parsed = CreateAlertBodySchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "invalid input" }, { status: 400 });
   }
@@ -48,16 +41,25 @@ export async function POST(request: Request) {
     );
   }
 
+  const { symbol, exchange, label, triggers } = parsed.data;
+
+  // Keep legacy condition + target_price columns populated when a price trigger
+  // exists — old downstream code reading the table directly still works.
+  const legacyPriceCols = triggers.price
+    ? { condition: triggers.price.condition, target_price: triggers.price.target }
+    : { condition: null, target_price: null };
+
   const { data, error } = await supabase
     .from("alerts")
     .insert({
       user_id: user.id,
-      symbol: parsed.data.symbol,
-      exchange: parsed.data.exchange,
-      condition: parsed.data.condition,
-      target_price: parsed.data.target_price,
+      symbol,
+      exchange,
+      label: label ?? null,
+      triggers,
+      ...legacyPriceCols,
     })
-    .select()
+    .select("id, symbol, exchange, label, triggers, status, last_notified_at, created_at")
     .single();
 
   if (error) {
