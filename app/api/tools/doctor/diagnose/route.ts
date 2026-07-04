@@ -68,6 +68,20 @@ export async function POST(req: Request) {
       changePct: q.changePct,
     };
   }
+  // Retry BSE for anything Yahoo NSE couldn't resolve — microcaps and many SME issues
+  // are BSE-only, and a chunk aren't in our NSE_SYMBOLS universe at all.
+  const missing = holdings.filter((h) => !quoteMap[h.symbol]);
+  if (missing.length > 0) {
+    const bseQuotes = await getQuotes(
+      missing.map((h) => ({ symbol: h.symbol, exchange: "BSE" as const })),
+    ).catch((err) => {
+      console.warn("[doctor/diagnose] BSE fallback quotes failed:", err);
+      return [] as Awaited<ReturnType<typeof getQuotes>>;
+    });
+    for (const q of bseQuotes) {
+      quoteMap[q.symbol] = { symbol: q.symbol, lastPrice: q.lastPrice, changePct: q.changePct };
+    }
+  }
 
   const analysis = analyze(holdings, quoteMap, sectorBySymbol);
   const result = await diagnose({ holdings, analysis, cached });

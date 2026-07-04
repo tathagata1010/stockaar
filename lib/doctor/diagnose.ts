@@ -76,6 +76,7 @@ function postProcess(d: Diagnosis, holdingSymbols: Set<string>): Diagnosis {
 function ruleBasedFallback(analysis: PortfolioAnalysis): Diagnosis {
   const flags: Diagnosis["red_flags"] = [];
   for (const r of analysis.rows) {
+    if (r.priceMissing) continue;
     if (r.conc > 25) {
       flags.push({
         severity: r.conc > 40 ? "high" : "med",
@@ -86,6 +87,7 @@ function ruleBasedFallback(analysis: PortfolioAnalysis): Diagnosis {
     }
   }
   for (const s of analysis.sectorBreakdown) {
+    if (s.sector === "Unknown") continue;
     if (s.pct > 40) {
       flags.push({
         severity: s.pct > 60 ? "high" : "med",
@@ -99,7 +101,7 @@ function ruleBasedFallback(analysis: PortfolioAnalysis): Diagnosis {
   for (const f of flags) score -= f.severity === "high" ? 15 : f.severity === "med" ? 8 : 3;
   score = Math.max(20, Math.min(95, score));
 
-  const dominant = analysis.sectorBreakdown[0];
+  const dominant = analysis.sectorBreakdown.find((s) => s.sector !== "Unknown");
   const tilt = dominant
     ? {
         dominant: dominant.sector,
@@ -124,29 +126,39 @@ function ruleBasedFallback(analysis: PortfolioAnalysis): Diagnosis {
 }
 
 function userPrompt(analysis: PortfolioAnalysis): string {
-  const tableRows = analysis.rows
-    .map(
-      (r) =>
+  const pricedLines: string[] = [];
+  const unpricedSymbols: string[] = [];
+  for (const r of analysis.rows) {
+    if (r.priceMissing) {
+      unpricedSymbols.push(r.symbol);
+    } else {
+      pricedLines.push(
         `${r.symbol} | qty=${r.qty} | avg=${r.avg} | LTP=${r.currentPrice ?? "?"} | sector=${r.sector} | conc=${r.conc.toFixed(1)}% | P/L=${r.plPct.toFixed(1)}%`,
-    )
-    .join("\n");
+      );
+    }
+  }
+  const tableRows = pricedLines.join("\n");
   const sectors = analysis.sectorBreakdown
+    .filter((s) => s.sector !== "Unknown")
     .map(
       (s) =>
         `${s.sector}: portfolio ${s.pct.toFixed(1)}% vs Nifty ${(NIFTY_SECTOR_WEIGHTS[s.sector] ?? 0).toFixed(1)}%`,
     )
     .join("\n");
+  const unpricedNote = unpricedSymbols.length > 0
+    ? `\n\nNote: ${unpricedSymbols.length} holding(s) (${unpricedSymbols.join(", ")}) had no live price available — they're excluded from totals and you should NOT comment on them or include them in red_flags/quality_issues/rebalance_suggestions.`
+    : "";
   return `PORTFOLIO HOLDINGS
 
-Total invested: ₹${analysis.invested.toFixed(0)}
-Current value: ₹${analysis.current.toFixed(0)}
+Total invested (priced only): ₹${analysis.invested.toFixed(0)}
+Current value (priced only): ₹${analysis.current.toFixed(0)}
 Overall P/L: ${analysis.plPct.toFixed(2)}%
 
 Per-stock:
 ${tableRows}
 
 Sector breakdown vs Nifty 50:
-${sectors}
+${sectors}${unpricedNote}
 
 Diagnose this portfolio strictly per the schema. JSON only.`;
 }

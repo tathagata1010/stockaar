@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Loader2, FileText, Stethoscope, RotateCcw } from "lucide-react";
-import { parseCsv } from "@/lib/doctor/portfolio";
+import { Loader2, FileText, Stethoscope, RotateCcw, CheckCircle2 } from "lucide-react";
+import { parseHoldingsCsv } from "@/lib/doctor/portfolio";
 import type { Holding, Diagnosis } from "@/lib/doctor/schema";
-import type { AnalysisSummary } from "@/lib/doctor/portfolio";
+import type { AnalysisSummary, CsvParseResult } from "@/lib/doctor/portfolio";
 import { UploadDropzone } from "./UploadDropzone";
+import { CsvDropzone } from "./CsvDropzone";
 import { HoldingsEditor } from "./HoldingsEditor";
 import { DiagnosisReport } from "./DiagnosisReport";
 
@@ -36,6 +37,7 @@ export function PortfolioDoctor() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [unresolvedRows, setUnresolvedRows] = useState<string[]>([]);
   const [importSource, setImportSource] = useState<"screenshot" | "csv" | "manual">("manual");
+  const [csvImport, setCsvImport] = useState<{ detected: CsvParseResult["detected"]; warnings: string[] } | null>(null);
 
   const [report, setReport] = useState<DiagnoseResponse | null>(null);
 
@@ -65,21 +67,26 @@ export function PortfolioDoctor() {
     }
   }, []);
 
-  const handleCsvSubmit = () => {
+  const handleCsvText = useCallback((text: string) => {
     setError(null);
-    const { holdings: parsed, errors } = parseCsv(csv);
-    if (errors.length > 0 && parsed.length === 0) {
-      setError(errors[0] ?? "Could not parse CSV.");
+    const result = parseHoldingsCsv(text);
+    if (result.holdings.length === 0) {
+      setError(result.errors[0] ?? "No holdings found in CSV. Check the format and try again.");
       return;
     }
-    if (parsed.length === 0) {
-      setError("Add at least one holding.");
-      return;
-    }
-    setHoldings(parsed);
+    setHoldings(result.holdings);
     setUnresolvedRows([]);
     setImportSource("csv");
+    setCsvImport({ detected: result.detected, warnings: result.warnings });
     setStage("review");
+  }, []);
+
+  const handleCsvSubmit = () => {
+    if (!csv.trim()) {
+      setError("Paste rows or upload a file.");
+      return;
+    }
+    handleCsvText(csv);
   };
 
   const validHoldings = holdings.filter((h) => h.symbol && h.qty > 0 && h.avg > 0);
@@ -123,6 +130,7 @@ export function PortfolioDoctor() {
     setReport(null);
     setError(null);
     setCsv("");
+    setCsvImport(null);
   };
 
   if (stage === "report" && report) {
@@ -136,7 +144,6 @@ export function PortfolioDoctor() {
           diagnosis={report.diagnosis}
           analysis={report.analysis}
           source={report.source}
-          isPro={false}
         />
       </div>
     );
@@ -145,6 +152,36 @@ export function PortfolioDoctor() {
   if (stage === "review") {
     return (
       <div className="mt-6 space-y-4">
+        {csvImport && (
+          <div className="surface rounded-xl p-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 font-semibold text-accent">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Parsed {holdings.length} {holdings.length === 1 ? "holding" : "holdings"}
+              </span>
+              {csvImport.detected.hasHeader && csvImport.detected.columns ? (
+                <span className="text-muted">
+                  Detected columns:
+                  {" "}<code className="rounded bg-bg/40 px-1.5 py-0.5">{csvImport.detected.columns.symbol}</code>
+                  {" → symbol · "}
+                  <code className="rounded bg-bg/40 px-1.5 py-0.5">{csvImport.detected.columns.qty}</code>
+                  {" → qty · "}
+                  <code className="rounded bg-bg/40 px-1.5 py-0.5">{csvImport.detected.columns.avg}</code>
+                  {" → avg"}
+                </span>
+              ) : (
+                <span className="text-muted">Positional format (SYMBOL,QTY,AVG)</span>
+              )}
+              {csvImport.detected.skippedRows > 0 && (
+                <span className="text-muted">· skipped {csvImport.detected.skippedRows} non-holding {csvImport.detected.skippedRows === 1 ? "row" : "rows"}</span>
+              )}
+            </div>
+            {csvImport.warnings.length > 0 && (
+              <ul className="mt-2 list-inside list-disc space-y-0.5 text-[11px] text-muted">
+                {csvImport.warnings.slice(0, 3).map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
         <HoldingsEditor
           value={holdings}
           unresolvedRows={unresolvedRows}
@@ -192,30 +229,33 @@ export function PortfolioDoctor() {
         {mode === "screenshot" ? (
           <UploadDropzone onImage={handleImage} busy={busy} />
         ) : (
-          <div className="surface rounded-2xl p-5 shadow-soft">
-            <h2 className="text-sm font-semibold">Paste your holdings</h2>
-            <p className="mt-1 text-[11px] text-muted">
-              Format: <code className="rounded bg-card px-1.5 py-0.5">SYMBOL,QTY,AVG_PRICE</code> · one per line.
-            </p>
-            <textarea
-              value={csv}
-              onChange={(e) => setCsv(e.target.value)}
-              rows={10}
-              placeholder={SAMPLE_CSV}
-              className="mt-3 w-full rounded-lg border border-border bg-bg/40 p-3 font-mono text-sm focus:border-brand focus:outline-none"
-            />
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={handleCsvSubmit}
-                disabled={!csv.trim()}
-                className="btn-brand inline-flex items-center gap-2 disabled:opacity-50"
-              >
-                <FileText className="h-4 w-4" />
-                Continue
-              </button>
-              <button onClick={() => setCsv(SAMPLE_CSV)} className="btn-ghost text-xs">
-                Try sample
-              </button>
+          <div className="space-y-3">
+            <CsvDropzone onText={handleCsvText} busy={busy} />
+            <div className="surface rounded-2xl p-5 shadow-soft">
+              <h2 className="text-sm font-semibold">Or paste rows directly</h2>
+              <p className="mt-1 text-[11px] text-muted">
+                Works with broker exports (headers auto-detected) or the simple <code className="rounded bg-card px-1.5 py-0.5">SYMBOL,QTY,AVG</code> format.
+              </p>
+              <textarea
+                value={csv}
+                onChange={(e) => setCsv(e.target.value)}
+                rows={8}
+                placeholder={SAMPLE_CSV}
+                className="mt-3 w-full rounded-lg border border-border bg-bg/40 p-3 font-mono text-sm focus:border-brand focus:outline-none"
+              />
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={handleCsvSubmit}
+                  disabled={!csv.trim()}
+                  className="btn-brand inline-flex items-center gap-2 disabled:opacity-50"
+                >
+                  <FileText className="h-4 w-4" />
+                  Continue
+                </button>
+                <button onClick={() => setCsv(SAMPLE_CSV)} className="btn-ghost text-xs">
+                  Try sample
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -255,9 +295,9 @@ export function PortfolioDoctor() {
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="text-muted">●</span>
-            <span className="text-muted">
-              <strong>Per-stock quality issues + rebalance ideas</strong> — Pro only.
+            <span className="text-brand">●</span>
+            <span>
+              <strong>Per-stock quality issues + rebalance ideas</strong> — flags valuation, debt, and concentration moves to consider.
             </span>
           </li>
         </ul>

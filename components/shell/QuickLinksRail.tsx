@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Star, Flame, Target, Filter, Zap, Bell,
   Newspaper, Layers3, CalendarDays, Briefcase, ShoppingCart, Activity,
-  GraduationCap, User2,
+  GraduationCap, User2, Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageRail, RailSection } from "@/components/shell/PageRail";
@@ -24,6 +24,7 @@ const LINKS = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays, group: "Discover" as const },
   { href: "/alerts", label: "Alerts", icon: Bell, group: "Discover" as const },
 
+  { href: "/tools/doctor", label: "Portfolio Doctor", icon: Stethoscope, group: "Tools" as const },
   { href: "/tools/portfolio", label: "Portfolio", icon: Briefcase, group: "Tools" as const },
   { href: "/tools/should-i-buy", label: "Should I Buy?", icon: ShoppingCart, group: "Tools" as const },
   { href: "/tools/rsi", label: "RSI scanner", icon: Activity, group: "Tools" as const },

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { createClient as createServiceClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getQuotes } from "@/lib/upstox";
 import { get20dAvgVolume } from "@/lib/history-volume";
 import { getStockNews, type NewsItem } from "@/lib/news";
@@ -143,7 +143,7 @@ export async function GET(req: Request) {
 }
 
 async function processAlert(args: {
-  admin: ReturnType<typeof createServiceClient>;
+  admin: SupabaseClient;
   alert: ParsedAlert;
   snapshot: { price: number; changePct: number; volume?: number; avg20dVolume?: number };
   freshNews: NewsItem[];

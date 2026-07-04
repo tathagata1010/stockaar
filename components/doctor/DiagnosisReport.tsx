@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Lock, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
+import { Sparkles, TrendingUp, TrendingDown } from "lucide-react";
 import { cn, formatINR, formatPct, formatCompactINR } from "@/lib/utils";
 import { StockLogo } from "@/components/StockLogo";
 import type { Sector } from "@/lib/nse-symbols";
@@ -13,13 +12,22 @@ import { RedFlagCard } from "./RedFlagCard";
 type Props = {
   diagnosis: Diagnosis;
   analysis: AnalysisSummary;
-  isPro: boolean;
   source: "llm" | "cache" | "fallback";
 };
 
-export function DiagnosisReport({ diagnosis, analysis, isPro, source }: Props) {
+export function DiagnosisReport({ diagnosis, analysis, source }: Props) {
+  const unpricedRows = analysis.rows.filter((r) => r.priceMissing);
   return (
     <div className="space-y-6">
+      {unpricedRows.length > 0 && (
+        <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-xs text-fg/90">
+          <span className="font-semibold text-warning">Heads up:</span>{" "}
+          We couldn&apos;t fetch a live price for {unpricedRows.length}{" "}
+          {unpricedRows.length === 1 ? "holding" : "holdings"} ({unpricedRows.map((r) => r.symbol).join(", ")}).
+          Likely BSE-only, illiquid, or not in our universe. They&apos;re excluded from totals, sector tilt,
+          and the diagnosis — listed in the table for reference.
+        </div>
+      )}
       <section className="surface relative overflow-hidden rounded-2xl p-6 shadow-soft">
         <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand via-brand-2 to-accent" />
         <div className="grid gap-6 sm:grid-cols-[180px_1fr] sm:items-center">
@@ -120,6 +128,27 @@ export function DiagnosisReport({ diagnosis, analysis, isPro, source }: Props) {
             </div>
             {analysis.rows.map((r) => {
               const up = r.pl >= 0;
+              if (r.priceMissing) {
+                return (
+                  <div
+                    key={r.symbol}
+                    className="row-hover grid grid-cols-[minmax(0,2.2fr)_60px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)] items-center gap-x-3 border-t border-border/50 px-4 py-3 text-sm opacity-70"
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <StockLogo symbol={r.symbol} sector={r.sector as Sector} size="sm" animated={false} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-semibold leading-tight">{r.symbol}</div>
+                        <div className="truncate text-[11px] text-muted leading-tight">{r.sector}</div>
+                      </div>
+                    </div>
+                    <div className="text-right tabular-nums">{r.qty}</div>
+                    <div className="text-right tabular-nums text-muted">{formatINR(r.avg)}</div>
+                    <div className="col-span-4 text-right text-[11px] italic text-muted">
+                      Price unavailable — excluded from totals
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div
                   key={r.symbol}
@@ -165,7 +194,7 @@ export function DiagnosisReport({ diagnosis, analysis, isPro, source }: Props) {
         </div>
       </section>
 
-      <ProSection title="Per-stock quality issues" count={diagnosis.quality_issues.length} isPro={isPro}>
+      <ReportSection title="Per-stock quality issues" count={diagnosis.quality_issues.length}>
         <ul className="space-y-3">
           {diagnosis.quality_issues.map((q, i) => (
             <li key={i} className="rounded-lg border border-border bg-card/60 p-3">
@@ -178,12 +207,11 @@ export function DiagnosisReport({ diagnosis, analysis, isPro, source }: Props) {
             </li>
           ))}
         </ul>
-      </ProSection>
+      </ReportSection>
 
-      <ProSection
+      <ReportSection
         title="Rebalance suggestions"
         count={diagnosis.rebalance_suggestions.length}
-        isPro={isPro}
       >
         <ul className="space-y-3">
           {diagnosis.rebalance_suggestions.map((r, i) => (
@@ -196,7 +224,7 @@ export function DiagnosisReport({ diagnosis, analysis, isPro, source }: Props) {
             </li>
           ))}
         </ul>
-      </ProSection>
+      </ReportSection>
     </div>
   );
 }
@@ -236,50 +264,22 @@ function SummaryCard({
   );
 }
 
-function ProSection({
+function ReportSection({
   title,
   count,
-  isPro,
   children,
 }: {
   title: string;
   count: number;
-  isPro: boolean;
   children: React.ReactNode;
 }) {
   if (count === 0) return null;
-  if (isPro) {
-    return (
-      <section className="surface rounded-2xl p-5 shadow-soft">
-        <h3 className="mb-3 text-sm font-semibold">
-          {title} <span className="text-muted">({count})</span>
-        </h3>
-        {children}
-      </section>
-    );
-  }
   return (
-    <section className="surface relative overflow-hidden rounded-2xl p-5 shadow-soft">
-      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-b from-bg/30 via-bg/70 to-bg/95 backdrop-blur-[3px]">
-        <div className="text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-brand/15 text-brand ring-1 ring-brand/30">
-            <Lock className="h-5 w-5" />
-          </div>
-          <p className="mt-2 text-sm font-semibold">
-            {count} {title.toLowerCase()} — Pro only
-          </p>
-          <p className="mt-1 text-[11px] text-muted">Detailed per-stock issues + rebalance ideas.</p>
-          <Link href="/pricing" className="btn-brand mt-3 inline-flex text-xs">
-            Unlock with Pro
-          </Link>
-        </div>
-      </div>
-      <div className="opacity-40">
-        <h3 className="mb-3 text-sm font-semibold">
-          {title} <span className="text-muted">({count})</span>
-        </h3>
-        {children}
-      </div>
+    <section className="surface rounded-2xl p-5 shadow-soft">
+      <h3 className="mb-3 text-sm font-semibold">
+        {title} <span className="text-muted">({count})</span>
+      </h3>
+      {children}
     </section>
   );
 }

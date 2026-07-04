@@ -8,7 +8,7 @@ import { useDismiss } from "@/lib/hooks/useDismiss";
 import {
   LayoutDashboard, Star, Flame, Target, Filter, Zap, Bell,
   Newspaper, Layers3, CalendarDays, Wrench, GraduationCap, ChevronDown,
-  Briefcase, ShoppingCart, Activity, Sparkles,
+  Briefcase, ShoppingCart, Activity, Sparkles, Stethoscope,
 } from "lucide-react";
 
 export const PRIMARY = [
@@ -30,6 +30,7 @@ export const DISCOVER = [
 ];
 
 export const TOOLS = [
+  { href: "/tools/doctor", label: "Portfolio Doctor", icon: Stethoscope, desc: "NEW · AI health check for your holdings" },
   { href: "/tools/portfolio", label: "Portfolio Analyzer", icon: Briefcase, desc: "Concentration & P/L" },
   { href: "/tools/should-i-buy", label: "Should I Buy?", icon: ShoppingCart, desc: "Instant stock verdict" },
   { href: "/tools/rsi", label: "RSI Scanner", icon: Activity, desc: "Overbought / oversold" },
