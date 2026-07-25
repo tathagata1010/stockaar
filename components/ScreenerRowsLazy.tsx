@@ -7,9 +7,9 @@ import type { UniverseRow } from "@/lib/universe";
 import { StockLogo } from "./StockLogo";
 
 const SIGNAL_STYLES: Record<string, string> = {
-  BUY: "bg-accent/20 text-accent border-accent/40",
-  HOLD: "bg-muted/20 text-muted border-muted/40",
-  SELL: "bg-danger/20 text-danger border-danger/40",
+  POSITIVE: "bg-accent/20 text-accent border-accent/40",
+  NEUTRAL: "bg-muted/20 text-muted border-muted/40",
+  CAUTION: "bg-danger/20 text-danger border-danger/40",
 };
 
 function fmtCr(n?: number): string {
@@ -29,9 +29,9 @@ function fmtPctVal(n?: number, digits = 1): string {
 }
 
 function PillarCell({ value }: { value?: number }) {
-  if (value === undefined) return <td className="px-3 py-3 text-right text-muted">—</td>;
+  if (value === undefined) return <td className="px-3 py-3 text-right t-muted">—</td>;
   const color = value >= 70 ? "text-accent" : value >= 40 ? "text-fg" : "text-danger";
-  return <td className={cn("px-3 py-3 text-right tabular-nums", color)}>{value}</td>;
+  return <td className={cn("px-3 py-3 text-right t-num", color)}>{value}</td>;
 }
 
 const PAGE = 25;
@@ -67,47 +67,47 @@ export function ScreenerRowsLazy({ rows }: { rows: UniverseRow[] }) {
           const sc = r.scorecard;
           const up = q && q.changePct >= 0;
           return (
-            <tr key={r.entry.symbol} className={`border-b border-border/40 last:border-0 hover:bg-border/20 fade-up-${(idx % 5) + 1}`}>
+            <tr key={r.entry.symbol} className={`border-b border-hairline last:border-0 hover:bg-hairline fade-up-${(idx % 5) + 1}`}>
               <td className="px-3 py-3">
                 <Link href={`/stock/${r.entry.symbol}`} className="flex items-center gap-2.5">
                   <StockLogo symbol={r.entry.symbol} sector={r.entry.sector} size="sm" />
                   <div className="min-w-0">
                     <div className="font-semibold">{r.entry.symbol}</div>
-                    <div className="text-[11px] text-muted line-clamp-1">
+                    <div className="t-caption t-muted line-clamp-1">
                       {r.entry.sector}{r.entry.industry ? ` · ${r.entry.industry}` : ""}
                     </div>
                   </div>
                 </Link>
               </td>
-              <td className="px-3 py-3 text-right tabular-nums">{q ? formatINR(q.lastPrice) : "—"}</td>
+              <td className="px-3 py-3 text-right t-num">{q ? formatINR(q.lastPrice) : "—"}</td>
               <td className={cn(
-                "px-3 py-3 text-right font-medium tabular-nums",
+                "px-3 py-3 text-right font-medium t-num",
                 q && (up ? "text-accent" : "text-danger"),
               )}>
                 {q ? formatPct(q.changePct) : "—"}
               </td>
-              <td className="px-3 py-3 text-right tabular-nums">{fmtCr(fu?.marketCap)}</td>
-              <td className="px-3 py-3 text-right tabular-nums">{fmtNum(fu?.trailingPE)}</td>
-              <td className="px-3 py-3 text-right tabular-nums">{fmtNum(fu?.priceToBook, 2)}</td>
-              <td className="px-3 py-3 text-right tabular-nums">{fmtPctVal(fu?.dividendYield)}</td>
-              <td className="px-3 py-3 text-right tabular-nums">{fmtPctVal(fu?.returnOnEquity)}</td>
-              <td className="px-3 py-3 text-right tabular-nums">{fmtPctVal(fu?.profitMargin)}</td>
-              <td className="px-3 py-3 text-right tabular-nums">{fmtPctVal(fu?.revenueGrowth)}</td>
-              <td className="px-3 py-3 text-right tabular-nums">
+              <td className="px-3 py-3 text-right t-num">{fmtCr(fu?.marketCap)}</td>
+              <td className="px-3 py-3 text-right t-num">{fmtNum(fu?.trailingPE)}</td>
+              <td className="px-3 py-3 text-right t-num">{fmtNum(fu?.priceToBook, 2)}</td>
+              <td className="px-3 py-3 text-right t-num">{fmtPctVal(fu?.dividendYield)}</td>
+              <td className="px-3 py-3 text-right t-num">{fmtPctVal(fu?.returnOnEquity)}</td>
+              <td className="px-3 py-3 text-right t-num">{fmtPctVal(fu?.profitMargin)}</td>
+              <td className="px-3 py-3 text-right t-num">{fmtPctVal(fu?.revenueGrowth)}</td>
+              <td className="px-3 py-3 text-right t-num">
                 {r.rangePosition !== null ? `${r.rangePosition.toFixed(0)}%` : "—"}
               </td>
               <PillarCell value={sc?.pillars.valuation.score} />
               <PillarCell value={sc?.pillars.growth.score} />
               <PillarCell value={sc?.pillars.quality.score} />
               <PillarCell value={sc?.pillars.momentum.score} />
-              <td className="px-3 py-3 text-right font-semibold tabular-nums">{sc ? sc.composite : "—"}</td>
+              <td className="px-3 py-3 text-right font-semibold t-num">{sc ? sc.composite : "—"}</td>
               <td className="px-3 py-3 text-right">
                 {r.signal ? (
                   <span className={cn(
-                    "rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+                    "rounded-md border px-2 py-0.5 t-caption font-semibold",
                     SIGNAL_STYLES[r.signal],
                   )}>{r.signal}</span>
-                ) : <span className="text-xs text-muted">—</span>}
+                ) : <span className="t-caption t-muted">—</span>}
               </td>
             </tr>
           );
@@ -116,7 +116,7 @@ export function ScreenerRowsLazy({ rows }: { rows: UniverseRow[] }) {
       {count < rows.length && (
         <tfoot>
           <tr>
-            <td colSpan={17} className="px-3 py-6 text-center text-xs text-muted">
+            <td colSpan={17} className="px-3 py-6 text-center t-caption t-muted">
               <div ref={sentinelRef} className="inline-flex items-center gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-brand" />
                 Loading {Math.min(PAGE, rows.length - count)} more of {rows.length}…

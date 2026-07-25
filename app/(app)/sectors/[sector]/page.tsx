@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getSector } from "@/lib/sectors";
 import { ALL_SECTORS, type Sector } from "@/lib/nse-symbols";
 import { StockTable } from "@/components/StockTable";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { cn, formatCompactINR, formatPct } from "@/lib/utils";
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown } from "lucide-react";
 
@@ -26,15 +26,15 @@ export default async function SectorDetailPage(
 
   return (
     <main>
-      <Link href="/sectors" className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted hover:text-brand">
+      <Link href="/sectors" className="mb-4 inline-flex items-center gap-1.5 t-caption t-muted hover:text-brand">
         <ArrowLeft className="h-3.5 w-3.5" />
         All sectors
       </Link>
 
-      <section className="mesh-hero relative overflow-hidden rounded-3xl border border-border-strong bg-card/40 p-6 shadow-glow md:p-10">
+      <section className="mesh-hero relative overflow-hidden rounded-3xl border border-hairline-strong bg-card/40 p-6 shadow-e4 md:p-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="chip chip-brand mb-3">Sector deep-dive · live</div>
+            <div className="chip chip--brand mb-3">Sector deep-dive · live</div>
             <h1 className="num-display text-4xl font-bold tracking-tight md:text-5xl">
               {decoded} <span className="text-gradient-animate">Sector</span>
             </h1>
@@ -59,7 +59,7 @@ export default async function SectorDetailPage(
         </Suspense>
       </section>
 
-      <Disclaimer className="mt-10" />
+      <PageFooter kind="sector" sector={decoded} />
     </main>
   );
 }
@@ -68,7 +68,7 @@ async function HeroSubtitle({ sector }: { sector: Sector }) {
   const data = await getSector(sector);
   if (!data) return null;
   return (
-    <p className="mt-3 text-sm text-muted md:text-base">
+    <p className="mt-3 t-body t-muted md:text-base">
       {formatCompactINR(data.totalMarketCap)} total market cap · {data.count} listed stocks
     </p>
   );
@@ -132,12 +132,12 @@ function Stat({ label, value, icon, tone }: {
     : tone === "danger" ? "bg-danger/15 text-danger ring-danger/30"
     : "bg-brand/15 text-brand ring-brand/30";
   return (
-    <div className="rounded-xl border border-border bg-card/60 px-4 py-3 backdrop-blur">
+    <div className="rounded-md border border-hairline bg-card/60 px-4 py-3 backdrop-blur">
       <div className="flex items-center gap-2">
         <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg ring-1", color)}>{icon}</span>
         <div>
-          <div className="text-[10px] uppercase text-muted">{label}</div>
-          <div className="num-display text-lg font-bold tabular-nums">{value}</div>
+          <div className="t-label">{label}</div>
+          <div className="num-display text-lg font-bold t-num">{value}</div>
         </div>
       </div>
     </div>
@@ -150,15 +150,15 @@ function Pick({ label, row, positive = false }: { label: string; row: NonNullabl
   return (
     <Link
       href={`/stock/${row.entry.symbol}`}
-      className="surface flex items-center justify-between rounded-2xl p-3 hover-lift"
+      className="surface flex items-center justify-between p-3"
     >
       <div className="min-w-0">
-        <div className="text-[10px] uppercase text-muted">{label}</div>
+        <div className="t-label">{label}</div>
         <div className="mt-0.5 font-semibold">{row.entry.symbol}</div>
-        <div className="text-xs text-muted line-clamp-1">{row.entry.name}</div>
+        <div className="text-xs t-muted line-clamp-1">{row.entry.name}</div>
       </div>
       <span className={cn(
-        "inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums ring-1",
+        "inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-xs font-semibold t-num ring-1",
         positive ? "bg-accent/10 text-accent ring-accent/25" : "bg-danger/10 text-danger ring-danger/25",
       )}>
         {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}

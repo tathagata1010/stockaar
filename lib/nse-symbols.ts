@@ -776,6 +776,18 @@ export const ALL_SECTORS: Sector[] = [
   "Textiles", "Agri", "Other",
 ];
 
+export const SYMBOL_META_BY_SYMBOL: Record<string, SymbolEntry> = (() => {
+  const m: Record<string, SymbolEntry> = {};
+  for (const s of NSE_SYMBOLS) m[s.symbol] = s;
+  return m;
+})();
+
+export const SECTOR_BY_SYMBOL: Record<string, Sector> = (() => {
+  const m: Record<string, Sector> = {};
+  for (const s of NSE_SYMBOLS) m[s.symbol] = s.sector;
+  return m;
+})();
+
 export function searchSymbols(query: string, limit = 10): SymbolEntry[] {
   const q = query.trim().toUpperCase();
   if (!q) return [];

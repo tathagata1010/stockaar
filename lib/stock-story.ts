@@ -1,5 +1,6 @@
 import { redis } from "./redis";
-import { nvidiaChat, isNvidiaConfigured, NVIDIA_MODEL } from "./nvidia";
+import { isNvidiaConfigured, NVIDIA_MODEL } from "./nvidia";
+import { runLLM } from "./ai/chat";
 import { getStockNews, type NewsItem } from "./news";
 import type { Quote } from "./upstox";
 import type { Fundamentals } from "./fundamentals";
@@ -161,7 +162,7 @@ export async function getStockStory(
   const name = meta?.name ?? symbol;
   const sector = meta?.sector ?? "Equities";
 
-  if (!isNvidiaConfigured()) {
+  if (!isNvidiaConfigured() && !process.env.GROQ_API_KEY) {
     const fb = deterministicFallback(symbol, name, sector, quote, fundamentals);
     await redis.set(cacheKey, fb, { ex: CACHE_TTL_SEC }).catch(() => {});
     return fb;
@@ -169,7 +170,8 @@ export async function getStockStory(
 
   const news = await getStockNews(symbol, exchange, 8).catch(() => [] as NewsItem[]);
   const prompt = buildPrompt(symbol, name, sector, meta?.industry, quote, fundamentals, news);
-  const raw = await nvidiaChat(
+  const raw = await runLLM(
+    "brief",
     [
       {
         role: "system",

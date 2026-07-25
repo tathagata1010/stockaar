@@ -17,6 +17,7 @@ export type BuzzNews = {
   title: string;
   url: string;
   publisher: string;
+  publisherDomain?: string;
   publishedAt: number;
 };
 
@@ -188,6 +189,7 @@ async function rebuild(): Promise<BuzzPayload> {
       title: n.title,
       url: n.url,
       publisher: n.publisher,
+      publisherDomain: n.publisherDomain,
       publishedAt: n.publishedAt,
     };
     for (const sym of hits) {

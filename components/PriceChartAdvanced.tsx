@@ -158,7 +158,7 @@ export function PriceChartAdvanced({
   }, [markers, points]);
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-3 shadow-soft sm:p-5">
+    <div className="surface p-3 shadow-soft sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="-mx-1 flex gap-1 overflow-x-auto px-1">
           {RANGES.map((r) => (

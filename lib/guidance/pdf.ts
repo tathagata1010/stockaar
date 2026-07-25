@@ -21,6 +21,26 @@ const PDF_HEADERS: Record<string, string> = {
 // files are usually appendices we don't need.
 const MAX_BYTES = 10 * 1024 * 1024;
 
+// Extract text from an already-fetched PDF buffer. Lazy-imports pdf-parse
+// because pdfjs-dist references browser globals (DOMMatrix, Path2D) at module
+// load — eager import would crash any server route that transitively imports
+// this file. Shared between filings ingest and the research agent's read_url.
+export async function extractPdfText(buf: ArrayBuffer): Promise<string | null> {
+  try {
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: new Uint8Array(buf) });
+    try {
+      const out = await parser.getText();
+      return (out.text || "").trim() || null;
+    } finally {
+      await parser.destroy().catch(() => {});
+    }
+  } catch (e) {
+    console.warn("[pdf] parse error", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
 export async function fetchPdfText(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
@@ -41,14 +61,7 @@ export async function fetchPdfText(url: string): Promise<string | null> {
       console.warn(`[pdf] too large ${buf.byteLength}B ${url}`);
       return null;
     }
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: new Uint8Array(buf) });
-    try {
-      const out = await parser.getText();
-      return (out.text || "").trim() || null;
-    } finally {
-      await parser.destroy().catch(() => {});
-    }
+    return extractPdfText(buf);
   } catch (e) {
     console.warn("[pdf] error", url, e instanceof Error ? e.message : e);
     return null;

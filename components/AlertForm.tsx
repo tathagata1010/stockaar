@@ -79,11 +79,11 @@ export function AlertForm({ disabled, defaultSymbol }: { disabled?: boolean; def
   }
 
   return (
-    <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+    <form onSubmit={submit} className="surface p-5">
       <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
         <Bell className="h-4 w-4 text-brand" />
         Set a Smart Alert
-        <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent">
+        <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 t-label text-accent">
           <Sparkles className="h-3 w-3" /> AI brief
         </span>
       </div>
@@ -112,7 +112,7 @@ export function AlertForm({ disabled, defaultSymbol }: { disabled?: boolean; def
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Optional label (e.g. Earnings watch)"
           disabled={disabled || pending}
-          className="rounded-lg border border-border bg-bg/40 px-3 py-2 text-sm"
+          className="rounded-md border border-hairline bg-bg/40 px-3 py-2 text-sm"
         />
       </div>
 
@@ -138,7 +138,7 @@ export function AlertForm({ disabled, defaultSymbol }: { disabled?: boolean; def
             onChange={(e) => setT({ ...t, price: { ...t.price, target: e.target.value } })}
             placeholder="Target ₹"
             inputMode="decimal"
-            className="w-32 rounded-lg border border-border bg-bg/40 px-3 py-2 text-sm tabular-nums"
+            className="w-32 rounded-md border border-hairline bg-bg/40 px-3 py-2 text-sm t-num"
           />
         </TriggerRow>
 
@@ -149,15 +149,15 @@ export function AlertForm({ disabled, defaultSymbol }: { disabled?: boolean; def
           desc="Trigger when the stock moves ± more than your threshold."
           disabled={disabled || pending}
         >
-          <span className="text-sm text-muted">±</span>
+          <span className="text-sm t-muted">±</span>
           <input
             value={t.move.pctAbs}
             onChange={(e) => setT({ ...t, move: { ...t.move, pctAbs: e.target.value } })}
             placeholder="5"
             inputMode="decimal"
-            className="w-20 rounded-lg border border-border bg-bg/40 px-3 py-2 text-sm tabular-nums"
+            className="w-20 rounded-md border border-hairline bg-bg/40 px-3 py-2 text-sm t-num"
           />
-          <span className="text-sm text-muted">%</span>
+          <span className="text-sm t-muted">%</span>
         </TriggerRow>
 
         <TriggerRow
@@ -172,9 +172,9 @@ export function AlertForm({ disabled, defaultSymbol }: { disabled?: boolean; def
             onChange={(e) => setT({ ...t, volume: { ...t.volume, multiple: e.target.value } })}
             placeholder="2"
             inputMode="decimal"
-            className="w-20 rounded-lg border border-border bg-bg/40 px-3 py-2 text-sm tabular-nums"
+            className="w-20 rounded-md border border-hairline bg-bg/40 px-3 py-2 text-sm t-num"
           />
-          <span className="text-sm text-muted">× 20-day avg</span>
+          <span className="text-sm t-muted">× 20-day avg</span>
         </TriggerRow>
 
         <TriggerRow
@@ -187,21 +187,21 @@ export function AlertForm({ disabled, defaultSymbol }: { disabled?: boolean; def
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <p className="text-xs text-muted">
+        <p className="t-caption t-muted">
           Every email arrives with a 2–3 sentence AI brief — what just happened and what to watch next.
         </p>
         <button
           type="submit"
           disabled={disabled || pending || !anyEnabled}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-pop transition hover:-translate-y-0.5 disabled:opacity-50"
+          className="btn-brand disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save alert"}
         </button>
       </div>
 
-      {error && <p className="mt-3 text-xs text-danger">{error}</p>}
+      {error && <p className="mt-3 t-caption text-danger">{error}</p>}
       {disabled && (
-        <p className="mt-3 text-xs text-muted">
+        <p className="mt-3 t-caption t-muted">
           You&apos;ve hit your alert limit. Remove an existing alert to add a new one.
         </p>
       )}
@@ -227,8 +227,8 @@ function TriggerRow({
   return (
     <div
       className={cn(
-        "rounded-xl border p-3 transition",
-        checked ? "border-brand/40 bg-brand/5" : "border-border bg-bg/30",
+        "rounded-md border p-3 transition-colors duration-fast ease-out",
+        checked ? "border-brand/40 bg-brand/5" : "border-hairline bg-bg/30",
       )}
     >
       <label className="flex cursor-pointer items-start gap-3">
@@ -241,7 +241,7 @@ function TriggerRow({
         />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold">{title}</div>
-          <div className="text-xs text-muted">{desc}</div>
+          <div className="t-caption t-muted">{desc}</div>
           {checked && children && (
             <div className="mt-3 flex flex-wrap items-center gap-2">{children}</div>
           )}

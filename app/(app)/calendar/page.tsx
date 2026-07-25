@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { getUniverse, type UniverseRow } from "@/lib/universe";
 import { getIpos } from "@/lib/ipo-calendar";
 import { StickyScrollLayout, StickySection, type StickySection as TS } from "@/components/StickyScrollLayout";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { StockLogo } from "@/components/StockLogo";
 import { cn } from "@/lib/utils";
 import { Calendar, Rocket, Clock } from "lucide-react";
@@ -81,7 +81,7 @@ export default function CalendarPage() {
         </span>
         <h1 className="text-xl font-bold">Calendar</h1>
       </div>
-      <p className="mt-3 text-xs text-muted">Upcoming earnings & IPOs across NSE/BSE — live from NSE.</p>
+      <p className="mt-3 t-caption t-muted">Upcoming earnings & IPOs across NSE/BSE — live from NSE.</p>
       <div className="mt-4">
         <Suspense fallback={<HeroStatsSkeleton />}>
           <HeroStats />
@@ -117,7 +117,7 @@ export default function CalendarPage() {
           </Suspense>
         </StickySection>
       </StickyScrollLayout>
-      <Disclaimer className="mt-10" />
+      <PageFooter kind="market" />
     </AppShell>
   );
 }
@@ -160,33 +160,33 @@ function SectionHeading({ title }: { title: string }) {
 
 function EarningsList({ rows, empty }: { rows: EarningsRow[]; empty: string }) {
   if (rows.length === 0) {
-    return <p className="surface rounded-2xl p-6 text-sm text-muted">{empty}</p>;
+    return <p className="surface rounded-lg p-6 t-body t-muted">{empty}</p>;
   }
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {rows.map((r) => {
         const d = daysUntil(r.earningsDate);
         const dayChip = d <= 0 ? "Today" : d === 1 ? "Tomorrow" : `in ${d}d`;
-        const tone = d <= 2 ? "chip-warning" : d <= 7 ? "chip-brand" : "chip-accent";
+        const tone = d <= 2 ? "chip--warning" : d <= 7 ? "chip--brand" : "chip--accent";
         return (
           <Link
             key={r.entry.symbol}
             href={`/stock/${r.entry.symbol}`}
-            className="surface-strong hover-lift rounded-2xl border border-border p-4 shadow-soft"
+            className="surface p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <StockLogo symbol={r.entry.symbol} sector={r.entry.sector} size="sm" />
                 <div className="min-w-0">
                   <div className="font-semibold">{r.entry.symbol}</div>
-                  <div className="text-xs text-muted line-clamp-1">{r.entry.name}</div>
+                  <div className="text-xs t-muted line-clamp-1">{r.entry.name}</div>
                 </div>
               </div>
               <span className={cn("chip shrink-0", tone)}>{dayChip}</span>
             </div>
-            <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2 text-[11px] text-muted">
+            <div className="mt-3 flex items-center justify-between border-t border-hairline/60 pt-2 t-caption t-muted">
               <span className="uppercase tracking-wide">Reports</span>
-              <span className="num-display tabular-nums text-fg">{fmtDate(r.earningsDate)}</span>
+              <span className="num-display t-num text-fg">{fmtDate(r.earningsDate)}</span>
             </div>
           </Link>
         );
@@ -208,15 +208,15 @@ async function IpoSectionInner() {
     <>
       <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
         Upcoming IPOs
-        <span className="text-xs text-muted tabular-nums">({ipos.length})</span>
+        <span className="t-caption t-muted t-num">({ipos.length})</span>
         {source !== "nse" && (
-          <span className="rounded-full bg-bg-2 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted ring-1 ring-border">
+          <span className="rounded-full bg-bg-2 px-2 py-0.5 text-[10px] uppercase tracking-wider t-muted ring-1 ring-hairline">
             {source === "snapshot" ? "cached" : "fallback"}
           </span>
         )}
       </h2>
       {ipos.length === 0 ? (
-        <p className="surface rounded-2xl p-6 text-sm text-muted">No IPOs upcoming.</p>
+        <p className="surface rounded-lg p-6 t-body t-muted">No IPOs upcoming.</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {ipos.map((ipo) => {
@@ -224,21 +224,21 @@ async function IpoSectionInner() {
             return (
               <div
                 key={`${ipo.name}-${ipo.openDate}`}
-                className="surface-strong hover-lift relative overflow-hidden rounded-2xl border border-border p-5 shadow-soft"
+                className="surface relative overflow-hidden p-5"
               >
                 <div className="flex items-start justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient text-brand-fg shadow-pop">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-gradient text-brand-fg shadow-e2">
                         <Rocket className="h-4 w-4" />
                       </span>
                       <div>
                         <div className="font-bold tracking-tight">{ipo.name}</div>
-                        <div className="text-[11px] text-muted">{ipo.sector}</div>
+                        <div className="t-caption t-muted">{ipo.sector}</div>
                       </div>
                     </div>
                   </div>
-                  <span className={cn("chip", open ? "chip-accent" : "chip-brand")}>{ipo.status}</span>
+                  <span className={cn("chip", open ? "chip--accent" : "chip--brand")}>{ipo.status}</span>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
@@ -250,7 +250,7 @@ async function IpoSectionInner() {
                   <Cell label="Open" value={fmtDateStr(ipo.openDate)} />
                   <Cell label="Close" value={fmtDateStr(ipo.closeDate)} />
                 </div>
-                <div className="mt-3 text-[11px] text-muted">
+                <div className="mt-3 t-caption t-muted">
                   Issue size · <span className="font-semibold text-fg">{ipo.issueSize}</span>
                   {ipo.listingDate && <> · Lists {fmtDateStr(ipo.listingDate)}</>}
                 </div>
@@ -265,9 +265,9 @@ async function IpoSectionInner() {
 
 function Cell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card/60 p-2.5">
-      <div className="text-[10px] uppercase text-muted">{label}</div>
-      <div className="mt-0.5 font-semibold tabular-nums">{value}</div>
+    <div className="rounded-lg border border-hairline bg-card/60 p-2.5">
+      <div className="t-label">{label}</div>
+      <div className="mt-0.5 font-semibold t-num">{value}</div>
     </div>
   );
 }
@@ -275,9 +275,9 @@ function Cell({ label, value }: { label: string; value: string }) {
 function Stat({ label, value, tone }: { label: string; value: number; tone?: "accent" | "brand" }) {
   const color = tone === "accent" ? "text-accent" : tone === "brand" ? "text-brand" : "text-fg";
   return (
-    <div className="rounded-lg border border-border bg-card/60 p-2.5">
-      <div className="text-[10px] uppercase text-muted">{label}</div>
-      <div className={cn("mt-0.5 text-lg font-bold tabular-nums", color)}>{value}</div>
+    <div className="rounded-lg border border-hairline bg-card/60 p-2.5">
+      <div className="t-label">{label}</div>
+      <div className={cn("mt-0.5 text-lg font-bold t-num", color)}>{value}</div>
     </div>
   );
 }

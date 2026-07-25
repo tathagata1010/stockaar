@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { getQuotes } from "@/lib/upstox";
-import { redis } from "@/lib/redis";
-import { NSE_SYMBOLS } from "@/lib/nse-symbols";
 import { HoldingSchema } from "@/lib/doctor/schema";
-import type { Diagnosis } from "@/lib/doctor/schema";
-import { analyze } from "@/lib/doctor/portfolio";
-import { diagnose, cacheKeyFor, canonicalKey } from "@/lib/doctor/diagnose";
+import { runDoctorPipeline } from "@/lib/doctor/pipeline";
 import { checkAndIncrement, clientIp } from "@/lib/doctor/rate-limit";
 
 export const runtime = "nodejs";
@@ -20,12 +14,6 @@ const BodySchema = z.object({
   source: z.enum(["screenshot", "csv", "manual"]).default("manual"),
   imageHash: z.string().optional(),
 });
-
-const sectorBySymbol: Record<string, string> = (() => {
-  const m: Record<string, string> = {};
-  for (const s of NSE_SYMBOLS) m[s.symbol] = s.sector;
-  return m;
-})();
 
 export async function POST(req: Request) {
   let body: unknown;
@@ -56,75 +44,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const [quotes, cached] = await Promise.all([
-    getQuotes(holdings.map((h) => ({ symbol: h.symbol, exchange: "NSE" as const }))),
-    redis.get<Diagnosis>(cacheKeyFor(holdings)),
-  ]);
-  const quoteMap: Record<string, { symbol: string; lastPrice: number; changePct: number }> = {};
-  for (const q of quotes) {
-    quoteMap[q.symbol] = {
-      symbol: q.symbol,
-      lastPrice: q.lastPrice,
-      changePct: q.changePct,
-    };
-  }
-  // Retry BSE for anything Yahoo NSE couldn't resolve — microcaps and many SME issues
-  // are BSE-only, and a chunk aren't in our NSE_SYMBOLS universe at all.
-  const missing = holdings.filter((h) => !quoteMap[h.symbol]);
-  if (missing.length > 0) {
-    const bseQuotes = await getQuotes(
-      missing.map((h) => ({ symbol: h.symbol, exchange: "BSE" as const })),
-    ).catch((err) => {
-      console.warn("[doctor/diagnose] BSE fallback quotes failed:", err);
-      return [] as Awaited<ReturnType<typeof getQuotes>>;
-    });
-    for (const q of bseQuotes) {
-      quoteMap[q.symbol] = { symbol: q.symbol, lastPrice: q.lastPrice, changePct: q.changePct };
-    }
-  }
-
-  const analysis = analyze(holdings, quoteMap, sectorBySymbol);
-  const result = await diagnose({ holdings, analysis, cached });
-
-  let importId: string | null = null;
-  const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (serviceUrl && serviceKey) {
-    try {
-      const admin = createServiceClient(serviceUrl, serviceKey, {
-        auth: { persistSession: false },
-      });
-      const insertImport = await admin
-        .from("portfolio_imports")
-        .insert({
-          user_id: user?.id ?? null,
-          source,
-          holdings,
-          raw_image_hash: imageHash ?? canonicalKey(holdings),
-        })
-        .select("id")
-        .single();
-      if (insertImport.data?.id) {
-        importId = insertImport.data.id;
-        await admin.from("portfolio_diagnostics").insert({
-          import_id: importId,
-          health_score: result.diagnosis.health_score,
-          doctors_note: result.diagnosis.doctors_note,
-          red_flags: result.diagnosis.red_flags,
-          quality_issues: result.diagnosis.quality_issues,
-          rebalance_suggestions: result.diagnosis.rebalance_suggestions,
-          sector_tilt: result.diagnosis.sector_tilt ?? null,
-          model: result.model,
-        });
-      }
-    } catch (e) {
-      console.warn("[doctor/diagnose] persistence failed:", (e as Error).message);
-    }
-  }
+  const { importId, analysis, diagnosis, diagnosisSource } = await runDoctorPipeline({
+    holdings,
+    source,
+    userId: user?.id ?? null,
+    imageHash,
+  });
 
   return NextResponse.json({
     importId,
-    diagnosis: result.diagnosis,
+    diagnosis,
     analysis: {
       invested: analysis.invested,
       current: analysis.current,
@@ -133,6 +62,6 @@ export async function POST(req: Request) {
       rows: analysis.rows,
       sectorBreakdown: analysis.sectorBreakdown,
     },
-    source: result.source,
+    source: diagnosisSource,
   });
 }

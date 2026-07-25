@@ -14,7 +14,7 @@ export type TickerItem = {
   href?: string;
 };
 
-const POLL_MS = 30_000;
+const POLL_MS = 90_000;
 
 export function MarketTickerStripClient({ initial }: { initial: TickerItem[] }) {
   const [items, setItems] = useState<TickerItem[]>(initial);
@@ -54,13 +54,13 @@ export function MarketTickerStripClient({ initial }: { initial: TickerItem[] }) 
   const loop = [...items, ...items];
 
   return (
-    <section className="sticky top-0 z-50 border-b border-border bg-bg-2/80 backdrop-blur">
-      <div className="group relative flex items-center gap-3 overflow-hidden py-2">
-        <span className="ml-3 inline-flex shrink-0 items-center gap-1.5 rounded-md bg-bg px-2 py-1 text-[10px] uppercase tracking-wider text-muted ring-1 ring-border">
+    <section className="surface-glass sticky top-0 z-50 border-b border-hairline">
+      <div className="group relative flex items-center gap-3 overflow-hidden py-1.5">
+        <span className="ml-3 chip chip--muted">
           <Activity className="h-3 w-3 text-accent animate-pulse-soft" /> Live
         </span>
-        <div className="pointer-events-none absolute left-[72px] top-0 z-10 h-full w-12 bg-gradient-to-r from-bg-2 to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-gradient-to-l from-bg-2 to-transparent" />
+        <div className="pointer-events-none absolute left-[72px] top-0 z-10 h-full w-12 bg-gradient-to-r from-bg to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-gradient-to-l from-bg to-transparent" />
         <div
           className="animate-ticker flex w-max items-center gap-2 pr-3"
           style={{ animationDuration: "90s" }}
@@ -73,7 +73,7 @@ export function MarketTickerStripClient({ initial }: { initial: TickerItem[] }) 
                   <StockLogo symbol={s.symbol} size="xs" animated={false} />
                 )}
                 <span className="font-semibold">{s.symbol}</span>
-                <span className="text-muted tabular-nums">
+                <span className="t-mid t-num">
                   {Number.isFinite(s.last) ? (
                     <FlashNumber value={s.last} format={(n) => formatINR(n)} />
                   ) : (
@@ -81,7 +81,7 @@ export function MarketTickerStripClient({ initial }: { initial: TickerItem[] }) 
                   )}
                 </span>
                 <span
-                  className={`inline-flex items-center gap-0.5 tabular-nums ${
+                  className={`inline-flex items-center gap-0.5 t-num ${
                     up ? "text-accent" : "text-danger"
                   }`}
                 >
@@ -91,7 +91,7 @@ export function MarketTickerStripClient({ initial }: { initial: TickerItem[] }) 
               </>
             );
             const className =
-              "inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-card/60 px-2 py-1 text-[11px] transition hover:border-brand hover:bg-card";
+              "inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline/60 bg-surface-1/60 px-2 py-1 text-[11px] transition-colors duration-fast ease-out hover:border-brand/40 hover:bg-surface-1";
             return s.href ? (
               <a key={`${s.symbol}-${i}`} href={s.href} className={className}>
                 {inner}

@@ -5,7 +5,7 @@ export function PageRail({ children, className }: { children: ReactNode; classNa
   return (
     <div
       className={cn(
-        "surface rounded-2xl border border-border bg-card/60 p-4 shadow-soft",
+        "surface p-4",
         className,
       )}
     >
@@ -29,7 +29,7 @@ export function RailSection({
     <section className="space-y-2">
       {(label || action) && (
         <div className="flex items-center justify-between gap-2 px-0.5">
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
+          <div className="flex items-center gap-1.5 t-label">
             {icon}
             {label && <span>{label}</span>}
           </div>

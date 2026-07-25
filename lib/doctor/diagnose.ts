@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { nvidiaChat, NVIDIA_MODEL, isNvidiaConfigured } from "@/lib/nvidia";
+import { NVIDIA_MODEL, isNvidiaConfigured } from "@/lib/nvidia";
+import { runLLM } from "@/lib/ai/chat";
 import { redis } from "@/lib/redis";
 import { DiagnosisSchema, type Diagnosis, type Holding } from "./schema";
 import { NIFTY_SECTOR_WEIGHTS } from "./nifty-sector-weights";
@@ -182,13 +183,14 @@ export async function diagnose({
   const hit = cached ?? (await redis.get<Diagnosis>(cacheKey));
   if (hit) return { diagnosis: hit, source: "cache", model: NVIDIA_MODEL };
 
-  if (!isNvidiaConfigured()) {
+  if (!isNvidiaConfigured() && !process.env.GROQ_API_KEY) {
     return { diagnosis: ruleBasedFallback(analysis), source: "fallback", model: "rule-based" };
   }
 
   const holdingSymbols = new Set(holdings.map((h) => h.symbol.toUpperCase()));
   for (let attempt = 0; attempt < 2; attempt++) {
-    const raw = await nvidiaChat(
+    const raw = await runLLM(
+      "brief",
       [
         { role: "system", content: SYSTEM },
         { role: "user", content: userPrompt(analysis) },

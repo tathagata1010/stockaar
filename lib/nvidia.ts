@@ -3,13 +3,18 @@
 
 const ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions";
 
-// Free, large-context model on NVIDIA NIM. Llama-4 Maverick is MoE
-// (17B active / 400B total, 128 experts) — best free quality+speed combo,
-// with a 1M-token context window so long PDFs don't need aggressive trimming.
-// Override via NVIDIA_MODEL env (alternates: nvidia/llama-3.1-nemotron-70b-instruct,
-// meta/llama-3.1-405b-instruct, qwen/qwen2.5-72b-instruct).
+// Hard client-side timeout so a stalled model routing decision (observed with
+// llama-4-maverick in Jul-2026) never hangs a Suspense boundary for the full
+// Vercel maxDuration. Reader/insight LLM calls should either succeed fast or
+// bail so we render the article without the TL;DR.
+const REQUEST_TIMEOUT_MS = 25_000;
+
+// Free, capable NIM-hosted model with reliable free-tier availability.
+// Nemotron Super 49B is NVIDIA's reasoning-tuned Llama-3.3 variant — fast
+// enough for interactive TL;DRs and materiality scoring.
+// Override via NVIDIA_MODEL env.
 export const NVIDIA_MODEL =
-  process.env.NVIDIA_MODEL || "meta/llama-4-maverick-17b-128e-instruct";
+  process.env.NVIDIA_MODEL || "nvidia/llama-3.3-nemotron-super-49b-v1";
 
 export type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -20,6 +25,8 @@ export async function nvidiaChat(
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) return null;
 
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
   try {
     const res = await fetch(ENDPOINT, {
       method: "POST",
@@ -36,6 +43,7 @@ export async function nvidiaChat(
         top_p: 0.9,
         stream: false,
       }),
+      signal: ctrl.signal,
     });
     if (!res.ok) {
       console.warn("[nvidia] " + res.status + " " + (await res.text()).slice(0, 200));
@@ -47,6 +55,8 @@ export async function nvidiaChat(
   } catch (e) {
     console.warn("[nvidia] error", e);
     return null;
+  } finally {
+    clearTimeout(t);
   }
 }
 
@@ -54,9 +64,10 @@ export function isNvidiaConfigured(): boolean {
   return !!process.env.NVIDIA_API_KEY;
 }
 
-// Multimodal chat — Llama-4 Maverick accepts images via OpenAI-compatible
-// `image_url` content blocks. Pass a raw base64 string (no data: prefix);
-// we'll wrap it as a data URL ourselves.
+// Multimodal chat — accepts images via OpenAI-compatible `image_url` content
+// blocks. Pass a raw base64 string (no data: prefix); we'll wrap it as a data
+// URL ourselves. Vision-capable model must be set via NVIDIA_VISION_MODEL
+// (Nemotron 49B is text-only; use meta/llama-3.2-90b-vision-instruct or similar).
 export async function nvidiaVisionChat(opts: {
   imageBase64: string;
   systemPrompt: string;
@@ -69,7 +80,10 @@ export async function nvidiaVisionChat(opts: {
   if (!apiKey) return null;
   const mime = opts.mimeType ?? "image/jpeg";
   const dataUrl = `data:${mime};base64,${opts.imageBase64}`;
+  const visionModel = process.env.NVIDIA_VISION_MODEL || NVIDIA_MODEL;
 
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
   try {
     const res = await fetch(ENDPOINT, {
       method: "POST",
@@ -79,7 +93,7 @@ export async function nvidiaVisionChat(opts: {
         Accept: "application/json",
       },
       body: JSON.stringify({
-        model: NVIDIA_MODEL,
+        model: visionModel,
         messages: [
           { role: "system", content: opts.systemPrompt },
           {
@@ -95,6 +109,7 @@ export async function nvidiaVisionChat(opts: {
         top_p: 0.9,
         stream: false,
       }),
+      signal: ctrl.signal,
     });
     if (!res.ok) {
       console.warn("[nvidia/vision] " + res.status + " " + (await res.text()).slice(0, 200));
@@ -106,5 +121,7 @@ export async function nvidiaVisionChat(opts: {
   } catch (e) {
     console.warn("[nvidia/vision] error", e);
     return null;
+  } finally {
+    clearTimeout(t);
   }
 }

@@ -1,6 +1,6 @@
 import { redis } from "./redis";
-import { type Quote } from "./upstox";
-import { getUniverse } from "./universe";
+import { getQuotes, type Quote } from "./upstox";
+import { NSE_SYMBOLS } from "./nse-symbols";
 import { yahooFetch } from "./yahoo/client";
 import { cache } from "react";
 
@@ -30,9 +30,13 @@ export function findIndexBySlug(slug: string) {
   return INDICES.find((i) => i.slug === slug) ?? null;
 }
 
-const INDEX_TTL = 600;
-const INDEX_SOFT_TTL_MS = 30_000;
-const MOVERS_TTL = 300;
+const INDEX_TTL = 3600;
+// Yahoo indices are ~15 min delayed; there's no value in refreshing more than
+// once every 10–15 minutes. A tight SWR window causes every ticker poll (every
+// 30–60s per open tab) to trigger a background Yahoo fetch + Upstash write,
+// burning quota for no visible freshness gain.
+const INDEX_SOFT_TTL_MS = 15 * 60_000;
+const MOVERS_TTL = 30 * 60;
 
 type IndexEnvelope = { quote: IndexQuote; builtAt: number };
 const indexInflight = new Map<string, Promise<IndexQuote | null>>();
@@ -108,13 +112,15 @@ export async function getTopMovers(limit = 5): Promise<Movers> {
   const cached = await redis.get<Movers>(cacheKey).catch(() => null);
   if (cached && (cached.gainers?.length || cached.losers?.length)) return cached;
 
-  // Derive from the warm universe (full ~593 symbols) instead of a 40-symbol slice.
-  const rows = await getUniverse().catch(() => []);
-  const quotes = rows
-    .map((r) => r.quote)
-    .filter((q): q is Quote => !!q && Number.isFinite(q.changePct));
+  // Movers only need quotes (changePct). Avoid universe (fundamentals fan-out is
+  // slow cold — 750 Yahoo quoteSummary calls with 8s timeouts). Quotes come from
+  // Yahoo v7 bulk (80/call), so the whole set is a few parallel HTTP hits.
+  const quotes = await getQuotes(
+    NSE_SYMBOLS.map((s) => ({ symbol: s.symbol, exchange: s.exchange })),
+  ).catch(() => [] as Quote[]);
 
-  const sorted = [...quotes].sort((a, b) => b.changePct - a.changePct);
+  const valid = quotes.filter((q) => Number.isFinite(q.changePct));
+  const sorted = [...valid].sort((a, b) => b.changePct - a.changePct);
   const movers: Movers = {
     gainers: sorted.slice(0, limit),
     losers: sorted.slice(-limit).reverse(),

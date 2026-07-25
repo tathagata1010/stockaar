@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getUniverse, type UniverseRow } from "@/lib/universe";
 import { StockGrid } from "@/components/StockGrid";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { InPageSearch } from "@/components/InPageSearch";
 import { StickyScrollLayout, StickySection, type StickySection as TS } from "@/components/StickyScrollLayout";
 import { LazyMount } from "@/components/LazyMount";
@@ -88,26 +88,26 @@ async function HotInner({ searchParamsPromise }: { searchParamsPromise: Promise<
         </span>
         <h1 className="text-xl font-bold">Hot Stocks</h1>
       </div>
-      <p className="mt-3 text-xs text-muted">
+      <p className="mt-3 t-caption t-muted">
         Trending NSE/BSE picks computed from momentum, range position and composite score.
       </p>
       <div className="mt-4">
         <InPageSearch placeholder="Filter by symbol, name or sector…" />
       </div>
-      <div className="mt-4 rounded-xl border border-border bg-card/60 p-3 text-xs">
+      <div className="mt-4 rounded-md border border-hairline bg-card/60 p-3 text-xs">
         <div className="flex items-center gap-1.5 font-semibold"><Sparkles className="h-3 w-3 text-brand" /> Universe <LiveDot className="ml-auto" /></div>
-        <div className="mt-1 text-muted tabular-nums">
+        <div className="mt-1 t-muted t-num">
           {query ? <><span className="font-semibold text-fg">{pool.length}</span> of {universe.length}</> : <>{universe.length}</>} stocks {query ? "match" : "scanned"}
         </div>
       </div>
-      <div className="mt-2 rounded-xl border border-border bg-card/60 p-3 text-xs">
+      <div className="mt-2 rounded-md border border-hairline bg-card/60 p-3 text-xs">
         <div className="font-semibold flex items-center gap-1.5"><Award className="h-3 w-3 text-accent" /> Avg Score</div>
-        <div className="mt-1 text-muted tabular-nums">
+        <div className="mt-1 t-muted t-num">
           {avgScore.toFixed(0)} / 100
         </div>
       </div>
       {query && pool.length === 0 && (
-        <p className="mt-3 text-[11px] text-muted">
+        <p className="mt-3 t-caption t-muted">
           No stocks match <span className="font-semibold text-fg">&ldquo;{query}&rdquo;</span>. Try a shorter query or use the header search.
         </p>
       )}
@@ -121,7 +121,7 @@ async function HotInner({ searchParamsPromise }: { searchParamsPromise: Promise<
           <div className="space-y-4">{hero}</div>
           <EmptySearchResult query={query} noun="stocks" suggestions={["RELIANCE", "TCS", "HDFCBANK", "INFY"]} />
         </div>
-        <Disclaimer className="mt-10" />
+        <PageFooter kind="market" />
       </main>
     );
   }
@@ -150,7 +150,7 @@ async function HotInner({ searchParamsPromise }: { searchParamsPromise: Promise<
           <LazyMount minHeight={400}><StockGrid rows={highScores} showSignal /></LazyMount>
         </StickySection>
       </StickyScrollLayout>
-      <Disclaimer className="mt-10" />
+      <PageFooter kind="market" />
     </main>
   );
 }
@@ -158,7 +158,7 @@ async function HotInner({ searchParamsPromise }: { searchParamsPromise: Promise<
 function SH({ title, icon }: { title: string; icon: React.ReactNode }) {
   return (
     <div className="mb-3 flex items-center gap-2">
-      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-card border border-border">{icon}</span>
+      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-card border border-hairline">{icon}</span>
       <h2 className="text-lg font-semibold">{title}</h2>
     </div>
   );

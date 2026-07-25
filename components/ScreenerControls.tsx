@@ -71,17 +71,17 @@ const CAP_OPTIONS = [
   { value: "small", label: "Small (<₹10K Cr)" },
 ];
 const SIGNAL_OPTIONS = [
-  { value: "all",  label: "Any signal" },
-  { value: "BUY",  label: "BUY only" },
-  { value: "HOLD", label: "HOLD only" },
-  { value: "SELL", label: "SELL only" },
+  { value: "all",       label: "Any signal" },
+  { value: "POSITIVE",  label: "Positive only" },
+  { value: "NEUTRAL",   label: "Neutral only" },
+  { value: "CAUTION",   label: "Caution only" },
 ];
 
 const PRESET_TONES: Record<string, { active: string; idle: string }> = {
-  brand:   { active: "border-brand/60   bg-brand/15   text-brand   shadow-glow", idle: "border-border hover:border-brand/60 hover:text-brand" },
-  accent:  { active: "border-accent/60  bg-accent/15  text-accent  shadow-glow", idle: "border-border hover:border-accent/60 hover:text-accent" },
-  danger:  { active: "border-danger/60  bg-danger/15  text-danger  shadow-glow", idle: "border-border hover:border-danger/60 hover:text-danger" },
-  warning: { active: "border-warning/60 bg-warning/15 text-warning shadow-glow", idle: "border-border hover:border-warning/60 hover:text-warning" },
+  brand:   { active: "border-brand/60   bg-brand/15   text-brand   shadow-e4", idle: "border-hairline hover:border-brand/60 hover:text-brand" },
+  accent:  { active: "border-accent/60  bg-accent/15  text-accent  shadow-e4", idle: "border-hairline hover:border-accent/60 hover:text-accent" },
+  danger:  { active: "border-danger/60  bg-danger/15  text-danger  shadow-e4", idle: "border-hairline hover:border-danger/60 hover:text-danger" },
+  warning: { active: "border-warning/60 bg-warning/15 text-warning shadow-e4", idle: "border-hairline hover:border-warning/60 hover:text-warning" },
 };
 
 const PRESETS: { name: string; icon: LucideIcon; tone: keyof typeof PRESET_TONES; params: Record<string, string> }[] = [
@@ -90,7 +90,7 @@ const PRESETS: { name: string; icon: LucideIcon; tone: keyof typeof PRESET_TONES
   { name: "Growth stars",         icon: TrendingUp,       tone: "accent",  params: { revGrowMin: "15", earnGrowMin: "15", qulMin: "55" } },
   { name: "Quality compounders",  icon: Sparkles,         tone: "brand",   params: { roeMin: "18", pmMin: "12", deMax: "80", scoreMin: "60" } },
   { name: "Momentum leaders",     icon: Zap,              tone: "warning", params: { momMin: "70", posMin: "70", chgMin: "0" } },
-  { name: "Strong BUY signals",   icon: Target,           tone: "accent",  params: { signal: "BUY", scoreMin: "70" } },
+  { name: "Strong positive tilt", icon: Target,           tone: "accent",  params: { signal: "POSITIVE", scoreMin: "70" } },
   { name: "Beaten down",          icon: Gauge,            tone: "danger",  params: { posMax: "25", peMax: "25", qulMin: "50" } },
 ];
 
@@ -221,7 +221,7 @@ export function ScreenerControls({
               type="button"
               onClick={() => applyPreset(p.params)}
               className={cn(
-                "group inline-flex items-center gap-1.5 rounded-full border bg-card/70 px-3 py-1.5 text-xs font-semibold backdrop-blur transition hover:-translate-y-0.5",
+                "group inline-flex items-center gap-1.5 rounded-full border bg-card/70 px-3 py-1.5 text-xs font-semibold backdrop-blur transition-colors duration-fast ease-out",
                 active ? tone.active : tone.idle,
               )}
             >
@@ -235,22 +235,22 @@ export function ScreenerControls({
       {/* Active filter chips */}
       {chips.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Active</span>
+          <span className="t-label">Active</span>
           {chips.map((c) => (
             <button
               key={c.key}
               type="button"
               onClick={() => removeField(c.key)}
-              className="group inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand transition hover:bg-brand/20"
+              className="group inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/10 px-2.5 py-0.5 t-caption font-semibold text-brand transition-colors duration-fast ease-out hover:bg-brand/20"
             >
               {c.label}
-              <X className="h-3 w-3 opacity-70 transition group-hover:opacity-100" />
+              <X className="h-3 w-3 opacity-70 transition-opacity duration-fast ease-out group-hover:opacity-100" />
             </button>
           ))}
           <button
             type="button"
             onClick={resetAll}
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-card/60 px-2.5 py-0.5 text-[11px] font-semibold text-muted transition hover:border-danger/40 hover:text-danger"
+            className="inline-flex items-center gap-1 rounded-full border border-hairline bg-card/60 px-2.5 py-0.5 t-caption font-semibold t-muted transition-colors duration-fast ease-out hover:border-danger/40 hover:text-danger"
           >
             <RotateCcw className="h-3 w-3" />
             Reset all
@@ -262,7 +262,7 @@ export function ScreenerControls({
         {/* Sticky live filter rail */}
         <aside className="lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto pr-1">
           <div className={cn(
-            "surface relative overflow-hidden p-5 transition",
+            "surface relative overflow-hidden p-5 transition-shadow duration-fast ease-out",
             pending && "ring-1 ring-brand/40",
           )}>
             <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand via-brand-2 to-accent" />
@@ -273,7 +273,7 @@ export function ScreenerControls({
                   Live filters
                 </div>
                 <span className={cn(
-                  "inline-flex h-2 w-2 rounded-full transition",
+                  "inline-flex h-2 w-2 rounded-full transition-colors duration-fast ease-out",
                   pending ? "bg-brand animate-pulse" : "bg-accent/60",
                 )} />
               </div>
@@ -312,7 +312,7 @@ function SelectField({
 }) {
   return (
     <label className="mt-3 flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</span>
+      <span className="t-label">{label}</span>
       <Select
         value={value}
         onChange={(v) => onChange(name, v)}
@@ -332,8 +332,8 @@ function SliderGroup({
   onChange: (k: string, v: string) => void;
 }) {
   return (
-    <div className="mt-5 border-t border-border/60 pt-4">
-      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{title}</div>
+    <div className="mt-5 border-t border-hairline pt-4">
+      <div className="mb-2 t-label">{title}</div>
       <div className="space-y-3">
         {sliders.map((s) => (
           <SliderRow key={s.name} slider={s} value={local[s.name]} onChange={onChange} />
@@ -356,10 +356,10 @@ function SliderRow({
   return (
     <div>
       <div className="flex items-center justify-between text-[11px]">
-        <span className={cn("font-medium", active ? "text-fg" : "text-muted")}>{slider.label}</span>
+        <span className={cn("font-medium", active ? "text-fg" : "t-muted")}>{slider.label}</span>
         <span className={cn(
-          "num-display rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums ring-1 transition",
-          active ? "bg-brand/15 text-brand ring-brand/30" : "bg-bg-2 text-muted ring-border",
+          "num-display rounded-md px-1.5 py-0.5 t-label t-num ring-1 transition-colors duration-fast ease-out",
+          active ? "bg-brand/15 text-brand ring-brand/30" : "bg-bg-2 t-muted ring-hairline",
         )}>
           {slider.edge === "min" ? "≥ " : "≤ "}{num}{slider.unit ?? ""}
         </span>
@@ -373,7 +373,7 @@ function SliderRow({
         onChange={(e) => onChange(slider.name, e.target.value)}
         onDoubleClick={() => onChange(slider.name, "")}
         className={cn(
-          "mt-1.5 h-1.5 w-full cursor-pointer appearance-none rounded-full accent-brand transition",
+          "mt-1.5 h-1.5 w-full cursor-pointer appearance-none rounded-full accent-brand transition-colors duration-fast ease-out",
           active ? "bg-brand/20" : "bg-bg-2",
         )}
         title={`Double-click to clear ${slider.label}`}

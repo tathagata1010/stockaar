@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { getUniverse } from "@/lib/universe";
 import { redis } from "@/lib/redis";
 import { computeRSI } from "@/lib/rsi";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { StockLogo } from "@/components/StockLogo";
 import { cn, formatINR, formatPct } from "@/lib/utils";
 import { Activity, Gauge, TrendingDown, TrendingUp } from "lucide-react";
@@ -113,7 +113,7 @@ async function RsiTables() {
         />
       </section>
 
-      <p className="mt-4 text-xs text-muted">
+      <p className="mt-4 t-caption t-muted">
         {neutral} stocks in the neutral 30–70 zone.
       </p>
     </>
@@ -143,15 +143,15 @@ function SectionSkeleton({ h = 256 }: { h?: number }) {
 export default function RsiPage() {
   return (
     <AppShell>
-      <section className="mesh-hero relative overflow-hidden rounded-3xl border border-border-strong bg-card/40 p-4 shadow-glow sm:p-6 md:p-8 lg:p-10">
-        <div className="chip chip-brand mb-3">
+      <section className="mesh-hero relative overflow-hidden rounded-3xl border border-hairline-strong bg-card/40 p-4 shadow-e4 sm:p-6 md:p-8 lg:p-10">
+        <div className="chip chip--brand mb-3">
           <Activity className="h-3 w-3" />
           Scanned {SCAN_LIMIT} stocks · Wilder RSI(14)
         </div>
         <h1 className="num-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
           RSI <span className="text-gradient-animate">Scanner</span>
         </h1>
-        <p className="mt-3 max-w-2xl text-xs text-muted sm:text-sm md:text-base">
+        <p className="mt-3 max-w-2xl t-caption t-muted sm:text-sm md:text-base">
           14-day Relative Strength Index across India&apos;s top {SCAN_LIMIT} stocks. Spot oversold bounces and overbought pullbacks.
         </p>
       </section>
@@ -160,7 +160,7 @@ export default function RsiPage() {
         <RsiTables />
       </Suspense>
 
-      <Disclaimer className="mt-10" />
+      <PageFooter kind="market" />
     </AppShell>
   );
 }
@@ -172,12 +172,12 @@ function KPI({ label, value, tone, icon }: {
     : tone === "danger" ? "bg-danger/15 text-danger ring-danger/30"
     : "bg-brand/15 text-brand ring-brand/30";
   return (
-    <div className="surface-strong rounded-2xl p-5 shadow-soft">
+    <div className="surface p-5">
       <div className="flex items-center gap-2">
         {icon && <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg ring-1", ring)}>{icon}</span>}
-        <div className="text-[10px] uppercase text-muted">{label}</div>
+        <div className="t-label">{label}</div>
       </div>
-      <div className="num-display mt-2 text-3xl font-bold tabular-nums">{value}</div>
+      <div className="num-display mt-2 text-3xl font-bold t-num">{value}</div>
     </div>
   );
 }
@@ -186,8 +186,8 @@ function RsiTable({ title, description, rows, tone }: {
   title: string; description: string; rows: RsiRow[]; tone: "accent" | "danger";
 }) {
   return (
-    <div className="surface overflow-hidden rounded-2xl shadow-soft">
-      <div className="border-b border-border px-5 py-3.5">
+    <div className="surface overflow-hidden">
+      <div className="border-b border-hairline px-5 py-3.5">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <span className={cn(
             "flex h-7 w-7 items-center justify-center rounded-lg ring-1",
@@ -197,36 +197,36 @@ function RsiTable({ title, description, rows, tone }: {
           </span>
           {title}
         </div>
-        <p className="mt-1 text-[11px] text-muted">{description}</p>
+        <p className="mt-1 t-caption t-muted">{description}</p>
       </div>
       {rows.length === 0 ? (
-        <div className="p-6 text-sm text-muted">No matches right now.</div>
+        <div className="p-6 t-body t-muted">No matches right now.</div>
       ) : (
-        <ul className="divide-y divide-border/60">
+        <ul className="divide-y divide-hairline/60">
           {rows.map((r) => (
             <li key={r.symbol}>
-              <Link href={`/stock/${r.symbol}`} className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-bg/60">
+              <Link href={`/stock/${r.symbol}`} className="flex items-center justify-between px-4 py-3 transition-colors duration-fast ease-out hover:bg-bg/60">
                 <div className="flex min-w-0 items-center gap-3">
                   <StockLogo symbol={r.symbol} sector={r.sector} size="sm" />
                   <div className="min-w-0">
                     <div className="font-semibold">{r.symbol}</div>
-                    <div className="text-[11px] text-muted line-clamp-1">{r.name}</div>
+                    <div className="t-caption t-muted line-clamp-1">{r.name}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   {r.lastPrice != null && (
-                    <span className="hidden sm:inline tabular-nums text-xs text-muted">{formatINR(r.lastPrice)}</span>
+                    <span className="hidden sm:inline t-num text-xs t-muted">{formatINR(r.lastPrice)}</span>
                   )}
                   {r.changePct != null && (
                     <span className={cn(
-                      "hidden sm:inline rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums",
+                      "hidden sm:inline rounded-md px-2 py-0.5 text-xs font-semibold t-num",
                       r.changePct >= 0 ? "bg-accent/10 text-accent" : "bg-danger/10 text-danger",
                     )}>
                       {formatPct(r.changePct)}
                     </span>
                   )}
                   <span className={cn(
-                    "num-display min-w-[56px] rounded-md px-2 py-1 text-center text-sm font-bold tabular-nums ring-1",
+                    "num-display min-w-[56px] rounded-md px-2 py-1 text-center text-sm font-bold t-num ring-1",
                     tone === "accent" ? "bg-accent/10 text-accent ring-accent/30" : "bg-danger/10 text-danger ring-danger/30",
                   )}>
                     {r.rsi.toFixed(1)}

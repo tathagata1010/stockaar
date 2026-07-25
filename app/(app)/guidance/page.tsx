@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { getRecentGuidance, type GuidanceFeedRow } from "@/lib/guidance";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { InPageSearch } from "@/components/InPageSearch";
 import { EmptySearchResult } from "@/components/empty/EmptySearchResult";
 import { LiveGuidancePing } from "@/components/guidance/LiveGuidancePing";
@@ -31,7 +31,7 @@ const ALL_DIRECTIONS: Direction[] = ["up", "down", "flat", "mixed"];
 const DIR_META: Record<Direction, { label: string; short: string; icon: typeof TrendingUp; tone: string }> = {
   up:    { label: "Guidance up",    short: "Up",    icon: TrendingUp,   tone: "text-accent border-accent/40 bg-accent/10" },
   down:  { label: "Guidance down",  short: "Down",  icon: TrendingDown, tone: "text-danger border-danger/40 bg-danger/10" },
-  flat:  { label: "Flat",           short: "Flat",  icon: Minus,        tone: "text-muted border-border bg-bg-2" },
+  flat:  { label: "Flat",           short: "Flat",  icon: Minus,        tone: "text-muted border-hairline bg-bg-2" },
   mixed: { label: "Mixed",          short: "Mixed", icon: Shuffle,      tone: "text-warning border-warning/40 bg-warning/10" },
 };
 
@@ -66,7 +66,7 @@ export default async function GuidancePage(props: { searchParams: Promise<{ dir?
           New · Star feature
         </div>
         <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Guidance Tracker</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
+        <p className="mt-2 max-w-2xl t-body t-muted">
           What Indian listed-company management is <em className="not-italic font-semibold text-fg">actually saying</em> about the future — extracted verbatim from concall transcripts, investor presentations, and corporate filings. One card per stock; all recent signals merged.
         </p>
       </header>
@@ -96,11 +96,11 @@ export default async function GuidancePage(props: { searchParams: Promise<{ dir?
       </Suspense>
 
       <div className="mt-8">
-        <Disclaimer />
-        <p className="mt-3 text-[11px] text-muted">
+        <p className="mb-3 t-caption t-muted">
           Signals are AI-extracted from publicly filed corporate disclosures. Always verify against the linked source document before making any decision.
         </p>
       </div>
+      <PageFooter kind="market" />
     </main>
   );
 }
@@ -118,10 +118,10 @@ function FilterChip({ href, active, label, tone }: { href: string; active: boole
     <Link
       href={href}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs font-semibold transition",
+        "rounded-full border px-3 py-1 text-xs font-semibold transition-colors duration-fast ease-out",
         active
-          ? tone ?? "border-brand/50 bg-brand/15 text-brand shadow-glow"
-          : "border-border bg-card/60 text-muted hover:border-brand/40 hover:text-fg",
+          ? tone ?? "border-brand/50 bg-brand/15 text-brand shadow-e4"
+          : "border-hairline bg-card/60 t-muted hover:border-brand/40 hover:text-fg",
       )}
     >
       {label}
@@ -137,10 +137,10 @@ async function Feed({ direction, query }: { direction?: Direction; query: string
   if (rows.length === 0) {
     return (
       <div className="surface relative overflow-hidden p-10 text-center">
-        <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand via-brand-2 to-accent" />
-        <FileText className="mx-auto mb-3 h-8 w-8 text-muted" />
+        <div className="bar-accent" data-tone="neutral" />
+        <FileText className="mx-auto mb-3 h-8 w-8 t-muted" />
         <p className="text-sm font-medium text-fg">No guidance signals yet</p>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 t-caption t-muted">
           The first ingest cron will populate this feed within a few hours of the next earnings concall window.
         </p>
       </div>
@@ -155,7 +155,7 @@ async function Feed({ direction, query }: { direction?: Direction; query: string
 
   return (
     <>
-      <p className="mb-3 text-xs text-muted tabular-nums">
+      <p className="mb-3 t-caption t-muted t-num">
         Showing <span className="font-semibold text-fg">{stocks.length}</span> stocks · <span className="font-semibold text-fg">{filtered.length}</span> signals
         {direction && <> · {DIR_META[direction].label}</>}
         {query && <> · matching <span className="font-semibold text-fg">&ldquo;{query}&rdquo;</span></>}
@@ -228,8 +228,8 @@ function StockCard({ group, query }: { group: StockGroup; query: string }) {
     .join(" · ");
 
   return (
-    <article className="surface group relative overflow-hidden p-5 transition hover:-translate-y-0.5">
-      <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand via-brand-2 to-accent" />
+    <article className="surface group relative overflow-hidden p-5">
+      <div className="bar-accent" data-tone="neutral" />
       <div className="relative flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Link
@@ -239,7 +239,7 @@ function StockCard({ group, query }: { group: StockGroup; query: string }) {
             {highlight(group.symbol, query)}
           </Link>
           {group.companyName && (
-            <span className="truncate text-xs text-muted">· {highlight(group.companyName, query)}</span>
+            <span className="truncate text-xs t-muted">· {highlight(group.companyName, query)}</span>
           )}
           <span className={cn("ml-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ring-white/5", meta.tone)}>
             <Icon className="h-3 w-3" />
@@ -247,8 +247,8 @@ function StockCard({ group, query }: { group: StockGroup; query: string }) {
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
-          <span className="tabular-nums font-semibold text-fg">{group.signals.length} signal{group.signals.length === 1 ? "" : "s"}</span>
+        <div className="flex flex-wrap items-center gap-2 t-caption t-muted">
+          <span className="t-num font-semibold text-fg">{group.signals.length} signal{group.signals.length === 1 ? "" : "s"}</span>
           {breakdown && <span>· {breakdown}</span>}
           <span className="ml-auto inline-flex items-center gap-1">
             <Clock className="h-3 w-3" />
@@ -256,7 +256,7 @@ function StockCard({ group, query }: { group: StockGroup; query: string }) {
           </span>
         </div>
 
-        <ol className="space-y-2.5 border-l border-border/60 pl-3">
+        <ol className="space-y-2.5 border-l border-hairline/60 pl-3">
           {group.signals.map((s) => (
             <SignalLine key={s.id} row={s} query={query} />
           ))}
@@ -283,7 +283,7 @@ function SignalLine({ row, query }: { row: GuidanceFeedRow; query: string }) {
         {row.value_text && <Chip>{row.value_text}</Chip>}
         {row.timeframe && <Chip>{row.timeframe}</Chip>}
         <Chip muted>{category}</Chip>
-        <span className="ml-auto inline-flex items-center gap-1 text-muted">
+        <span className="ml-auto inline-flex items-center gap-1 t-muted">
           <Clock className="h-3 w-3" />
           {relative(row.filed_at)}
         </span>
@@ -292,7 +292,7 @@ function SignalLine({ row, query }: { row: GuidanceFeedRow; query: string }) {
             href={row.filing.pdf_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card/60 px-1.5 py-0.5 text-muted transition hover:border-brand/40 hover:text-brand"
+            className="inline-flex items-center gap-1 rounded-md border border-hairline bg-card/60 px-1.5 py-0.5 t-muted transition-colors duration-fast ease-out hover:border-brand/40 hover:text-brand"
           >
             Source <ExternalLink className="h-3 w-3" />
           </a>
@@ -323,7 +323,7 @@ function Chip({ children, muted }: { children: React.ReactNode; muted?: boolean 
       className={cn(
         "rounded-full px-2 py-0.5 ring-1",
         muted
-          ? "bg-bg-2 text-muted ring-border"
+          ? "bg-bg-2 t-muted ring-hairline"
           : "bg-brand/10 text-brand ring-brand/30",
       )}
     >
@@ -337,7 +337,7 @@ function Skeleton() {
     <ul className="max-h-[78vh] space-y-3 overflow-y-auto pr-1">
       {[...Array(6)].map((_, i) => (
         <li key={i} className="surface relative h-40 animate-pulse overflow-hidden p-5">
-          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand/40 via-brand-2/40 to-accent/40" />
+          <div className="bar-accent" data-tone="neutral" style={{ opacity: 0.4 }} />
         </li>
       ))}
     </ul>

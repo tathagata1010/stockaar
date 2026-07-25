@@ -7,6 +7,7 @@ import { WatchlistTable } from "@/components/WatchlistTable";
 import { AddStockForm } from "@/components/AddStockForm";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageRail, RailSection } from "@/components/shell/PageRail";
+import { PageFooter } from "@/components/PageFooter";
 import { Star, Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default function WatchlistPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl">Watchlist</h1>
-          <Suspense fallback={<p className="mt-1 text-sm text-muted">Loading…</p>}>
+          <Suspense fallback={<p className="mt-1 t-body t-muted">Loading…</p>}>
             <WatchlistMeta />
           </Suspense>
         </div>
@@ -43,6 +44,8 @@ export default function WatchlistPage() {
           <WatchlistData />
         </Suspense>
       </div>
+
+      <PageFooter kind="market" />
     </AppShell>
   );
 }
@@ -66,7 +69,7 @@ const loadCore = cache(async () => {
 async function WatchlistMeta() {
   const { maxItems, used } = await loadCore();
   return (
-    <p className="mt-1 text-sm text-muted">
+    <p className="mt-1 t-body t-muted">
       {used} of {maxItems === Infinity ? "\u221e" : maxItems} stocks tracked
     </p>
   );
@@ -77,9 +80,9 @@ async function WatchlistPlanCard() {
   const planName = PLANS[plan].name;
   const limitLabel = Number.isFinite(maxItems) ? `${used}/${maxItems}` : `${used}`;
   return (
-    <div className="rounded-lg border border-border bg-bg/40 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-muted">{planName} plan</div>
-      <div className="mt-1 text-sm font-semibold tabular-nums">{limitLabel}</div>
+    <div className="rounded-lg border border-hairline bg-bg/40 p-3">
+      <div className="t-label">{planName} plan</div>
+      <div className="mt-1 text-sm font-semibold t-num">{limitLabel}</div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { getUniverse, type UniverseRow } from "@/lib/universe";
 import { getRecentBlockDeals } from "@/lib/inst-flows";
 import type { Deal } from "@/lib/inst-flows";
 import { StockGrid } from "@/components/StockGrid";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { InPageSearch } from "@/components/InPageSearch";
 import { StickyScrollLayout, StickySection, type StickySection as TS } from "@/components/StickyScrollLayout";
 import { LazyMount } from "@/components/LazyMount";
@@ -119,7 +119,7 @@ async function AnomaliesInner({ searchParamsPromise }: { searchParamsPromise: Pr
         <h1 className="text-xl font-bold">Anomalies</h1>
         <LiveDot label className="ml-auto" />
       </div>
-      <p className="mt-3 text-xs text-muted">Unusual moves and upcoming events across {universe.length} NSE/BSE stocks.</p>
+      <p className="mt-3 t-caption t-muted">Unusual moves and upcoming events across {universe.length} NSE/BSE stocks.</p>
       <div className="mt-4">
         <InPageSearch placeholder="Filter by symbol, name, sector or client…" />
       </div>
@@ -130,7 +130,7 @@ async function AnomaliesInner({ searchParamsPromise }: { searchParamsPromise: Pr
         <Stat label="Block Deals" value={filteredDeals.length} tone="brand" />
       </div>
       {query && (
-        <p className="mt-3 text-[11px] text-muted">
+        <p className="mt-3 t-caption t-muted">
           Filtering by <span className="font-semibold text-fg">&ldquo;{query}&rdquo;</span>
         </p>
       )}
@@ -147,7 +147,7 @@ async function AnomaliesInner({ searchParamsPromise }: { searchParamsPromise: Pr
         <Section id="earnings" title="Earnings Within 7 Days" rows={earnings} empty={query ? `No upcoming earnings matching “${query}”.` : "No earnings announcements in the next 7 days."} />
         <BlockDealsSection deals={filteredDeals} query={query} />
       </StickyScrollLayout>
-      <Disclaimer className="mt-10" />
+      <PageFooter kind="market" />
     </main>
   );
 }
@@ -155,7 +155,7 @@ async function AnomaliesInner({ searchParamsPromise }: { searchParamsPromise: Pr
 function Section({ id, title, rows, empty }: { id: string; title: string; rows: AnomalyRow[]; empty: string }) {
   return (
     <StickySection id={id}>
-      <h2 className="mb-3 text-lg font-semibold">{title} <span className="ml-1 text-xs text-muted tabular-nums">({rows.length})</span></h2>
+      <h2 className="mb-3 text-lg font-semibold">{title} <span className="ml-1 t-caption t-muted t-num">({rows.length})</span></h2>
       <LazyMount minHeight={300}>
         <StockGrid rows={rows} emptyText={empty} />
       </LazyMount>
@@ -166,24 +166,24 @@ function Section({ id, title, rows, empty }: { id: string; title: string; rows: 
 const CAT_TONE: Record<Deal["category"], string> = {
   FII: "bg-brand/15 text-brand ring-brand/30",
   DII: "bg-accent/15 text-accent ring-accent/30",
-  OTHER: "bg-bg-2 text-muted ring-border",
+  OTHER: "bg-bg-2 t-muted ring-hairline",
 };
 
 function BlockDealsSection({ deals, query }: { deals: Deal[]; query: string }) {
   return (
     <StickySection id="block-deals">
       <h2 className="mb-3 text-lg font-semibold">
-        Block Deals <span className="ml-1 text-xs text-muted tabular-nums">({deals.length})</span>
+        Block Deals <span className="ml-1 t-caption t-muted t-num">({deals.length})</span>
       </h2>
       {deals.length === 0 ? (
-        <p className="text-sm text-muted">
+        <p className="t-body t-muted">
           {query ? `No block deals matching “${query}”.` : "No block deals reported in the most recent NSE archive."}
         </p>
       ) : (
         <div className="surface overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-bg/40 text-[11px] uppercase tracking-wider text-muted">
+              <thead className="border-b border-hairline bg-bg/40 t-label">
                 <tr>
                   <th className="px-3 py-2.5">Date</th>
                   <th className="px-3 py-2.5">Symbol</th>
@@ -196,8 +196,8 @@ function BlockDealsSection({ deals, query }: { deals: Deal[]; query: string }) {
               </thead>
               <tbody>
                 {deals.map((d, i) => (
-                  <tr key={`${d.date}-${d.symbol}-${d.client}-${d.side}-${i}`} className="border-b border-border last:border-0 hover:bg-bg/40">
-                    <td className="px-3 py-2 text-xs text-muted tabular-nums">{d.date}</td>
+                  <tr key={`${d.date}-${d.symbol}-${d.client}-${d.side}-${i}`} className="border-b border-hairline last:border-0 hover:bg-bg/40">
+                    <td className="px-3 py-2 text-xs t-muted t-num">{d.date}</td>
                     <td className="px-3 py-2">
                       <Link href={`/stock/${d.symbol}`} className="font-semibold text-fg hover:text-brand">
                         {d.symbol}
@@ -218,9 +218,9 @@ function BlockDealsSection({ deals, query }: { deals: Deal[]; query: string }) {
                         {d.side}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right text-xs tabular-nums">{d.qty.toLocaleString("en-IN")}</td>
-                    <td className="px-3 py-2 text-right text-xs tabular-nums">{d.price.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{formatCompactINR(d.value)}</td>
+                    <td className="px-3 py-2 text-right text-xs t-num">{d.qty.toLocaleString("en-IN")}</td>
+                    <td className="px-3 py-2 text-right text-xs t-num">{d.price.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right text-xs font-semibold t-num">{formatCompactINR(d.value)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -235,9 +235,9 @@ function BlockDealsSection({ deals, query }: { deals: Deal[]; query: string }) {
 function Stat({ label, value, tone }: { label: string; value: number; tone?: "accent" | "danger" | "brand" }) {
   const color = tone === "accent" ? "text-accent" : tone === "danger" ? "text-danger" : tone === "brand" ? "text-brand" : "text-fg";
   return (
-    <div className="rounded-lg border border-border bg-card/60 p-2.5">
-      <div className="text-[10px] uppercase text-muted">{label}</div>
-      <div className={`mt-0.5 text-lg font-bold tabular-nums ${color}`}>{value}</div>
+    <div className="rounded-lg border border-hairline bg-card/60 p-2.5">
+      <div className="t-label">{label}</div>
+      <div className={`mt-0.5 text-lg font-bold t-num ${color}`}>{value}</div>
     </div>
   );
 }

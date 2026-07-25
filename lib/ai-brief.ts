@@ -1,5 +1,6 @@
 import { redis } from "./redis";
-import { nvidiaChat, isNvidiaConfigured, NVIDIA_MODEL } from "./nvidia";
+import { isNvidiaConfigured, NVIDIA_MODEL } from "./nvidia";
+import { runLLM } from "./ai/chat";
 import { getStockNews, type NewsItem } from "./news";
 import { getQuote } from "./upstox";
 import { getFundamentals, type Fundamentals } from "./fundamentals";
@@ -275,9 +276,9 @@ export async function getAIBrief(
   if (!meta) return null;
 
   const [quote, fundamentals, news] = await Promise.all([
-    getQuote(symbol, exchange),
-    getFundamentals(symbol, exchange),
-    getStockNews(symbol, exchange, 12),
+    getQuote(symbol, exchange).catch(() => null),
+    getFundamentals(symbol, exchange).catch(() => null),
+    getStockNews(symbol, exchange, 12).catch(() => []),
   ]);
   const scorecard = fundamentals ? buildScorecard(fundamentals, quote) : null;
   const signal = scorecard ? deriveSignal(scorecard).signal : null;
@@ -305,7 +306,7 @@ export async function getAIBrief(
     marketCap: fundamentals?.marketCap ?? null,
   };
 
-  if (!isNvidiaConfigured()) {
+  if (!isNvidiaConfigured() && !process.env.GROQ_API_KEY) {
     return {
       symbol,
       summary: `${meta.name} — live data and a deterministic snapshot. Connect NVIDIA_API_KEY for narrative insights.`,
@@ -329,7 +330,8 @@ export async function getAIBrief(
 
   try {
     const prompt = buildPrompt(symbol, meta.name, meta.sector, meta.industry, quote, fundamentals, scorecard, signal, news);
-    const text = await nvidiaChat(
+    const text = await runLLM(
+      "brief",
       [
         {
           role: "system",

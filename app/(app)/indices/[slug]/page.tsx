@@ -5,7 +5,7 @@ import { findIndexBySlug, getIndex, getTopMovers, INDICES, type IndexQuote } fro
 import { formatPct, cn } from "@/lib/utils";
 import { PriceChart } from "@/components/PriceChart";
 import { RangeBar } from "@/components/RangeBar";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { StickyScrollLayout, StickySection, type StickySection as TS } from "@/components/StickyScrollLayout";
 import { LazyMount } from "@/components/LazyMount";
 import { NewsSection } from "@/components/NewsSection";
@@ -60,9 +60,9 @@ export default async function IndexDetailPage(props: { params: Promise<{ slug: s
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="truncate text-xl font-bold tracking-tight">{meta.name}</h1>
-            <span className="chip chip-brand text-[10px]">Index</span>
+            <span className="chip chip--brand text-[10px]">Index</span>
           </div>
-          <p className="truncate text-xs text-muted">{indexBlurb(meta.slug)}</p>
+          <p className="truncate t-caption t-muted">{indexBlurb(meta.slug)}</p>
         </div>
       </div>
 
@@ -72,7 +72,7 @@ export default async function IndexDetailPage(props: { params: Promise<{ slug: s
         <IndexHeroPrice slug={meta.slug} name={meta.name} yahooSymbol={meta.yahooSymbol} />
       </Suspense>
 
-      <Link href="/dashboard" className="mt-4 inline-block text-[11px] text-muted hover:text-brand">
+      <Link href="/dashboard" className="mt-4 inline-block t-caption t-muted hover:text-brand">
         ← Back to dashboard
       </Link>
     </>
@@ -124,7 +124,7 @@ export default async function IndexDetailPage(props: { params: Promise<{ slug: s
         </StickySection>
       </StickyScrollLayout>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <Disclaimer className="mt-10" />
+        <PageFooter kind="market" />
       </div>
     </main>
   );
@@ -141,7 +141,7 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
   return (
     <div className="mb-4">
       <h2 className="text-lg font-bold">{title}</h2>
-      {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+      {subtitle && <p className="t-caption t-muted">{subtitle}</p>}
     </div>
   );
 }
@@ -162,15 +162,15 @@ function HeroPriceSkeleton() {
 
 async function IndexHeroPrice({ slug, name, yahooSymbol }: { slug: string; name: string; yahooSymbol: string }) {
   const q = await getIndex(name, yahooSymbol);
-  if (!q) return <p className="text-sm text-muted">Index data temporarily unavailable.</p>;
+  if (!q) return <p className="t-body t-muted">Index data temporarily unavailable.</p>;
   const up = q.change >= 0;
   return (
     <div>
-      <div className="num-display text-3xl font-extrabold tabular-nums sm:text-4xl">
+      <div className="num-display text-3xl font-extrabold t-num-lg sm:text-4xl">
         {q.lastPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
       </div>
       <div className={cn(
-        "mt-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold tabular-nums ring-1",
+        "mt-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold t-num ring-1",
         up ? "bg-accent/10 text-accent ring-accent/25" : "bg-danger/10 text-danger ring-danger/25",
       )}>
         {up ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
@@ -188,9 +188,9 @@ async function IndexHeroPrice({ slug, name, yahooSymbol }: { slug: string; name:
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-bg/40 px-2 py-1.5 ring-1 ring-border">
-      <div className="text-[10px] uppercase tracking-wide text-muted">{label}</div>
-      <div className="mt-0.5 font-semibold text-fg tabular-nums">{value}</div>
+    <div className="rounded-md bg-bg/40 px-2 py-1.5 ring-1 ring-hairline">
+      <div className="t-label">{label}</div>
+      <div className="mt-0.5 font-semibold text-fg t-num">{value}</div>
     </div>
   );
 }
@@ -219,9 +219,9 @@ async function DayStats({ slug, name, yahooSymbol }: { slug: string; name: strin
 function StatCard({ label, value, accent }: { label: string; value: string; accent?: "up" | "down" }) {
   const color = accent === "up" ? "text-accent" : accent === "down" ? "text-danger" : "text-fg";
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="text-[11px] uppercase tracking-wide text-muted">{label}</div>
-      <div className={cn("mt-1 text-xl font-bold tabular-nums", color)}>{value}</div>
+    <div className="rounded-lg border border-hairline bg-card p-4">
+      <div className="t-label">{label}</div>
+      <div className={cn("mt-1 text-xl font-bold t-num", color)}>{value}</div>
     </div>
   );
 }
@@ -279,11 +279,11 @@ async function IndexReturns({ slug }: { slug: string }) {
       {results.map((r) => {
         const up = (r.value ?? 0) >= 0;
         return (
-          <div key={r.key} className="rounded-lg border border-border bg-card p-3 text-center">
-            <div className="text-[11px] uppercase tracking-wide text-muted">{r.label}</div>
+          <div key={r.key} className="rounded-lg border border-hairline bg-card p-3 text-center">
+            <div className="t-label">{r.label}</div>
             <div className={cn(
-              "mt-1 text-lg font-bold tabular-nums",
-              r.value == null ? "text-muted" : up ? "text-accent" : "text-danger",
+              "mt-1 text-lg font-bold t-num",
+              r.value == null ? "t-muted" : up ? "text-accent" : "text-danger",
             )}>
               {r.value == null ? "—" : `${up ? "+" : ""}${r.value.toFixed(2)}%`}
             </div>
@@ -306,15 +306,15 @@ async function MoversSection() {
 
 function MoversCard({ title, tone, rows }: { title: string; tone: "accent" | "danger"; rows: { symbol: string; lastPrice: number; changePct: number }[] }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className={cn("text-[11px] font-semibold uppercase tracking-wide", tone === "accent" ? "text-accent" : "text-danger")}>{title}</div>
-      <ul className="mt-3 divide-y divide-border">
-        {rows.length === 0 && <li className="py-3 text-sm text-muted">No data right now.</li>}
+    <div className="rounded-lg border border-hairline bg-card p-4">
+      <div className={cn("t-label", tone === "accent" ? "text-accent" : "text-danger")}>{title}</div>
+      <ul className="mt-3 divide-y divide-hairline">
+        {rows.length === 0 && <li className="py-3 t-body t-muted">No data right now.</li>}
         {rows.map((r) => (
           <li key={r.symbol} className="flex items-center justify-between py-2 text-sm">
             <Link href={`/stock/${r.symbol}`} className="font-medium hover:text-accent">{r.symbol}</Link>
-            <div className="flex items-center gap-3 tabular-nums">
-              <span className="text-muted">₹{r.lastPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
+            <div className="flex items-center gap-3 t-num">
+              <span className="t-muted">₹{r.lastPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
               <span className={cn("rounded px-1.5 py-0.5 text-xs font-semibold", tone === "accent" ? "bg-accent/10 text-accent" : "bg-danger/10 text-danger")}>
                 {formatPct(r.changePct)}
               </span>

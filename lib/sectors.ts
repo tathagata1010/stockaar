@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { ALL_SECTORS, type Sector } from "./nse-symbols";
 import { getUniverse, type UniverseRow } from "./universe";
 
@@ -12,7 +14,9 @@ export type SectorPerformance = {
   rows: UniverseRow[];
 };
 
-export async function getSectorPerformance(): Promise<SectorPerformance[]> {
+// React cache() dedupes per-request so multiple <Suspense> children on the
+// sector page share one promise instead of firing 4× the universe fetch.
+export const getSectorPerformance = cache(async (): Promise<SectorPerformance[]> => {
   const universe = await getUniverse();
   const out: SectorPerformance[] = [];
 
@@ -53,9 +57,9 @@ export async function getSectorPerformance(): Promise<SectorPerformance[]> {
   }
 
   return out.sort((a, b) => b.avgChangePct - a.avgChangePct);
-}
+});
 
-export async function getSector(sector: Sector): Promise<SectorPerformance | null> {
+export const getSector = cache(async (sector: Sector): Promise<SectorPerformance | null> => {
   const all = await getSectorPerformance();
   return all.find((s) => s.sector === sector) ?? null;
-}
+});

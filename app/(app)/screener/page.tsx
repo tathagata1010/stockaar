@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getUniverse, type UniverseRow } from "@/lib/universe";
 import { getInstFlows, type FlowAgg } from "@/lib/inst-flows";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { ScreenerResults } from "@/components/ScreenerResults";
 import { ScreenerControls } from "@/components/ScreenerControls";
 import { allIndustries, type Sector } from "@/lib/nse-symbols";
@@ -45,17 +45,17 @@ export default async function ScreenerPage(props: { searchParams: Promise<SP> })
 
   return (
     <AppShell>
-      <section className="mesh-hero relative overflow-hidden rounded-3xl border border-border-strong bg-card/40 p-4 shadow-glow sm:p-6 md:p-8 lg:p-10">
+      <section className="mesh-hero relative overflow-hidden rounded-3xl border border-hairline-strong bg-card/40 p-4 shadow-e4 sm:p-6 md:p-8 lg:p-10">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div className="chip chip-brand mb-3">
+            <div className="chip chip--brand mb-3">
               <Crosshair className="h-3 w-3" />
               Live scan · {industries.length}+ industries
             </div>
             <h1 className="num-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
               Smart <span className="text-gradient-animate">Screener</span>
             </h1>
-            <p className="mt-3 max-w-xl text-xs text-muted sm:text-sm md:text-base">
+            <p className="mt-3 max-w-xl t-caption t-muted sm:text-sm md:text-base">
               Drag the sliders. Click a preset. Watch hundreds of NSE/BSE stocks narrow down to your edge in real time.
             </p>
           </div>
@@ -85,7 +85,7 @@ export default async function ScreenerPage(props: { searchParams: Promise<SP> })
         </Suspense>
       </ScreenerControls>
 
-      <Disclaimer className="mt-10" />
+      <PageFooter kind="market" />
     </AppShell>
   );
 }
@@ -173,8 +173,8 @@ async function MatchCount(ctx: Omit<FilterCtx, "flows">) {
       <div className="relative flex items-baseline gap-3">
         <Sparkles className="h-4 w-4 text-brand" />
         <div className="flex items-baseline gap-2">
-          <span className="num-display text-4xl font-bold tabular-nums text-gradient-static">{matches.length}</span>
-          <span className="text-xs text-muted">/ {universe.length} pass</span>
+          <span className="num-display text-4xl font-bold t-num text-gradient-static">{matches.length}</span>
+          <span className="t-caption t-muted">/ {universe.length} pass</span>
         </div>
       </div>
       <div className="relative mt-2 h-1 overflow-hidden rounded-full bg-bg-2">

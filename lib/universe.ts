@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { redis } from "./redis";
 import { getQuotes, type Quote } from "./upstox";
-import { getFundamentals, type Fundamentals } from "./fundamentals";
+import { getFundamentalsMany, type Fundamentals } from "./fundamentals";
 import { NSE_SYMBOLS, type SymbolEntry } from "./nse-symbols";
 import { buildScorecard, deriveSignal, type Scorecard, type Signal } from "./scorecard";
 
@@ -15,9 +15,17 @@ export type UniverseRow = {
 };
 
 const UNIVERSE_KEY = "universe:v5";
-const SOFT_TTL_MS = 10 * 60 * 1000;
+// Long soft TTL + generous jitter → very few background rebuilds/day.
+// Fundamentals barely change intraday; quote freshness is handled by the quote
+// cache separately (so a row's price column refreshes via getQuotes on read).
+const SOFT_TTL_MS = 2 * 60 * 60 * 1000;
+const SOFT_TTL_JITTER_MS = 15 * 60 * 1000;
 const HARD_TTL_SEC = 24 * 60 * 60;
 const FUNDAMENTALS_CONCURRENCY = 24;
+// If a cold rebuild (no cache) doesn't finish quickly, we don't want to
+// block SSR for minutes. Callers get an empty universe; the rebuild keeps
+// running in the background and populates the LRU/Redis for the next request.
+const COLD_REBUILD_WAIT_MS = 12_000;
 
 type Envelope = { builtAt: number; rows: UniverseRow[] };
 
@@ -48,19 +56,17 @@ async function rebuild(): Promise<UniverseRow[]> {
   ).catch(() => [] as Quote[]);
   const quoteBy = new Map(quotes.map((q) => [`${q.exchange}:${q.symbol}`, q]));
 
-  // 2. Fundamentals: still per-symbol (Yahoo quoteSummary has no bulk endpoint),
-  //    but cached 6h, so usually warm. Concurrency-limited fan-out.
-  const rows: UniverseRow[] = new Array(NSE_SYMBOLS.length);
-  for (let i = 0; i < NSE_SYMBOLS.length; i += FUNDAMENTALS_CONCURRENCY) {
-    const batch = NSE_SYMBOLS.slice(i, i + FUNDAMENTALS_CONCURRENCY);
-    await Promise.all(
-      batch.map(async (entry, j) => {
-        const fundamentals = await getFundamentals(entry.symbol, entry.exchange).catch(() => null);
-        const quote = quoteBy.get(`${entry.exchange}:${entry.symbol}`) ?? null;
-        rows[i + j] = buildRowFromParts(entry, quote, fundamentals);
-      }),
-    );
-  }
+  // 2. Fundamentals: single mget for all cache keys (~1 Redis command vs. 4000
+  //    in the per-symbol path), then bounded fan-out to Yahoo only for misses.
+  const fundsBy = await getFundamentalsMany(
+    NSE_SYMBOLS.map((s) => ({ symbol: s.symbol, exchange: s.exchange })),
+    FUNDAMENTALS_CONCURRENCY,
+  );
+
+  const rows: UniverseRow[] = NSE_SYMBOLS.map((entry) => {
+    const key = `${entry.exchange}:${entry.symbol}`;
+    return buildRowFromParts(entry, quoteBy.get(key) ?? null, fundsBy.get(key) ?? null);
+  });
 
   const envelope: Envelope = { builtAt: Date.now(), rows };
   await redis.set(UNIVERSE_KEY, envelope, { ex: HARD_TTL_SEC }).catch(() => {});
@@ -87,17 +93,28 @@ export const getUniverse = cache(async (): Promise<UniverseRow[]> => {
     const hasQuotes = envelope.rows.some((r) => r?.quote?.lastPrice);
     if (!hasQuotes) {
       await redis.del(UNIVERSE_KEY).catch(() => {});
-      return startRebuild();
+      return waitForBuildOrEmpty();
     }
     const age = Date.now() - envelope.builtAt;
-    if (age > SOFT_TTL_MS) {
+    // Jitter the soft-TTL so many concurrent SSR calls don't all trigger a
+    // rebuild at the same second (thundering herd on Yahoo + Redis).
+    const softExpiry = SOFT_TTL_MS + Math.floor(Math.random() * SOFT_TTL_JITTER_MS);
+    if (age > softExpiry) {
       startRebuild().catch(() => {});
     }
     return envelope.rows;
   }
 
-  return startRebuild();
+  return waitForBuildOrEmpty();
 });
+
+async function waitForBuildOrEmpty(): Promise<UniverseRow[]> {
+  const build = startRebuild();
+  const timeout = new Promise<UniverseRow[]>((resolve) => {
+    setTimeout(() => resolve([]), COLD_REBUILD_WAIT_MS);
+  });
+  return Promise.race([build.catch(() => [] as UniverseRow[]), timeout]);
+}
 
 export async function warmUniverse(): Promise<number> {
   const rows = await startRebuild();

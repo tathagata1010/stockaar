@@ -6,7 +6,7 @@
 import type { Quote } from "../upstox";
 import type { Fundamentals } from "../fundamentals";
 import { fetchNseQuotes } from "./nse-public";
-import { fetchTickertapeFundamentals } from "./tickertape";
+import { fetchTickertapeFundamentals, fetchTickertapeInfo } from "./tickertape";
 
 export async function fetchQuotesFallback(
   items: { symbol: string; exchange: "NSE" | "BSE" }[],
@@ -22,4 +22,11 @@ export async function fetchFundamentalsFallback(
   exchange: "NSE" | "BSE",
 ): Promise<Partial<Fundamentals> | null> {
   return fetchTickertapeFundamentals(symbol, exchange);
+}
+
+export async function fetchCompanyProfile(
+  symbol: string,
+  exchange: "NSE" | "BSE",
+): Promise<Partial<Fundamentals> | null> {
+  return fetchTickertapeInfo(symbol, exchange);
 }

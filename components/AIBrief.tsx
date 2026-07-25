@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import type { AIBrief as AIBriefType } from "@/lib/ai-brief";
 import { cn, formatINR } from "@/lib/utils";
+import { ExpandableText } from "@/components/ui/ExpandableText";
 
 function modelShortName(model: string): string {
   if (!model || model === "none") return "AI";
@@ -113,7 +114,9 @@ export function AIBrief({ brief }: { brief: AIBriefType | null }) {
         </div>
 
         {brief.summary && (
-          <p className="mt-4 text-sm leading-relaxed text-fg">{brief.summary}</p>
+          <ExpandableText lines={4} className="mt-4 text-sm leading-relaxed text-fg">
+            {brief.summary}
+          </ExpandableText>
         )}
 
         {brief.moat && (
@@ -135,7 +138,9 @@ export function AIBrief({ brief }: { brief: AIBriefType | null }) {
             <Zap className="h-3 w-3" />
             Latest from news
           </div>
-          <p className="text-sm leading-relaxed text-fg">{brief.latestUpdate}</p>
+          <ExpandableText lines={4} className="text-sm leading-relaxed text-fg">
+            {brief.latestUpdate}
+          </ExpandableText>
         </div>
       )}
 

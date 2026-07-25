@@ -23,12 +23,14 @@ import { AnalystRatings } from "@/components/AnalystRatings";
 import { Financials } from "@/components/Financials";
 import { Shareholding } from "@/components/Shareholding";
 import { AIBrief } from "@/components/AIBrief";
+import { AboutCompany } from "@/components/AboutCompany";
 import { Disclaimer } from "@/components/Disclaimer";
 import { StockLogo } from "@/components/StockLogo";
 import { LiveHeroPrice } from "@/components/LiveHeroPrice";
 import { StickyScrollLayout, StickySection, type StickySection as TS } from "@/components/StickyScrollLayout";
 import { LazyMount } from "@/components/LazyMount";
 import { NewsSection } from "@/components/NewsSection";
+import { RelatedSurfaces } from "@/components/RelatedSurfaces";
 import { HeroSparkline } from "@/components/stock/HeroSparkline";
 import { HeroRangeMini } from "@/components/stock/HeroRangeMini";
 import { HeroMetrics } from "@/components/stock/HeroMetrics";
@@ -36,6 +38,7 @@ import { ShareButton } from "@/components/stock/ShareButton";
 import { MobileActionBar } from "@/components/stock/MobileActionBar";
 import { PeerComparison } from "@/components/stock/PeerComparison";
 import { CorporateActions } from "@/components/stock/CorporateActions";
+import { StockRightRail } from "@/components/stock/StockRightRail";
 import { getPeers } from "@/lib/peers";
 import { getAIBrief } from "@/lib/ai-brief";
 import {
@@ -88,13 +91,13 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
         <StockLogo symbol={symbol} sector={meta.sector} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-xl font-bold tracking-tight">{symbol}</h1>
-            <span className="chip chip-brand text-[10px]">{meta.exchange}</span>
+            <h1 className="truncate t-hero">{symbol}</h1>
+            <span className="chip chip--brand text-[10px]">{meta.exchange}</span>
           </div>
-          <p className="truncate text-xs text-muted">{meta.name}</p>
+          <p className="truncate t-caption t-muted">{meta.name}</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="chip text-[10px]">{meta.sector}</span>
-            {meta.industry && <span className="chip text-[10px]">{meta.industry}</span>}
+            <span className="chip chip--muted text-[10px]">{meta.sector}</span>
+            {meta.industry && <span className="chip chip--muted text-[10px]">{meta.industry}</span>}
           </div>
         </div>
       </div>
@@ -118,7 +121,7 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
         <ShareButton symbol={symbol} name={meta.name} />
       </div>
 
-      <Link href="/dashboard" className="mt-4 inline-block text-[11px] text-muted hover:text-brand">
+      <Link href="/dashboard" className="mt-4 inline-block t-caption t-muted transition-colors duration-fast ease-out hover:text-brand">
         ← Back to dashboard
       </Link>
     </>
@@ -126,6 +129,7 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
 
   const sections: TS[] = [
     { id: "overview", label: "Overview", icon: <LineChart className="h-3.5 w-3.5" /> },
+    { id: "about", label: "About", icon: <Building2 className="h-3.5 w-3.5" /> },
     { id: "peers", label: "Peers", icon: <GitCompare className="h-3.5 w-3.5" /> },
     { id: "performance", label: "Performance", icon: <Activity className="h-3.5 w-3.5" /> },
     { id: "ai-brief", label: "AI Brief", icon: <Sparkles className="h-3.5 w-3.5" />, badge: "Pro" },
@@ -166,12 +170,29 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <StickyScrollLayout hero={heroShell} sections={sections}>
+      <StickyScrollLayout
+        hero={heroShell}
+        sections={sections}
+        rightRail={<StockRightRail symbol={symbol} exchange={meta.exchange} sector={meta.sector} />}
+      >
         <StickySection id="overview">
           <SectionHeader title="Overview" subtitle="Live chart with moving averages, volume, and RSI" />
           <PriceChartAdvanced symbol={symbol} exchange={meta.exchange} />
           <Suspense fallback={<SectionSkeleton h={140} />}>
             <DayStats symbol={symbol} exchange={meta.exchange} />
+          </Suspense>
+        </StickySection>
+
+        <StickySection id="about">
+          <SectionHeader title={`About ${meta.name}`} subtitle="Business summary and company profile" />
+          <Suspense fallback={<SectionSkeleton h={200} />}>
+            <AboutSection
+              symbol={symbol}
+              exchange={meta.exchange}
+              name={meta.name}
+              sector={meta.sector}
+              industry={meta.industry}
+            />
           </Suspense>
         </StickySection>
 
@@ -203,7 +224,7 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
         </StickySection>
 
         <StickySection id="news">
-          <SectionHeader title={`News about ${symbol}`} subtitle="Multi-source: Yahoo, Google News, Bing" />
+          <SectionHeader title={`News about ${symbol}`} subtitle="Filtered to headlines that mention this stock" />
           <LazyMount minHeight={200}>
             <Suspense fallback={<SectionSkeleton h={300} />}>
               <NewsSection symbol={symbol} exchange={meta.exchange} limit={12} />
@@ -238,7 +259,12 @@ export default async function StockDetailPage(props: { params: Promise<{ symbol:
       <div className="mt-10 pb-24 lg:pb-0">
         <Disclaimer variant="bold" />
       </div>
-      <Disclaimer className="mt-4" />
+      <RelatedSurfaces
+        kind="stock"
+        contextSymbol={symbol}
+        contextName={meta.name}
+        sector={meta.sector}
+      />
     </main>
   );
 }
@@ -318,7 +344,7 @@ async function DayStats({ symbol, exchange }: { symbol: string; exchange: "NSE" 
   const prevClose = quote.lastPrice - quote.change;
   const changeColor = quote.change >= 0 ? "accent" : "danger";
   return (
-    <div className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-5">
+    <div className="surface mt-5 p-4 sm:p-5">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Stat label="Prev Close" value={formatINR(prevClose)} />
         <Stat label="Day High" value={formatINR(quote.dayHigh)} />
@@ -452,25 +478,50 @@ async function AIBriefBlock({ symbol, exchange }: { symbol: string; exchange: "N
   return <AIBrief brief={brief} />;
 }
 
+async function AboutSection({
+  symbol,
+  exchange,
+  name,
+  sector,
+  industry,
+}: {
+  symbol: string;
+  exchange: "NSE" | "BSE";
+  name: string;
+  sector?: string;
+  industry?: string;
+}) {
+  const fundamentals = await getFundamentals(symbol, exchange);
+  return (
+    <AboutCompany
+      name={name}
+      symbol={symbol}
+      fundamentals={fundamentals}
+      fallbackSector={sector}
+      fallbackIndustry={industry}
+    />
+  );
+}
+
 function SectionHeader({ title, subtitle, badge }: { title: string; subtitle?: string; badge?: string }) {
   return (
     <div className="mb-3 flex items-end justify-between">
       <div>
-        <h2 className="text-lg font-bold tracking-tight sm:text-xl md:text-2xl">{title}</h2>
-        {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+        <h2 className="t-h1">{title}</h2>
+        {subtitle && <p className="t-caption t-muted">{subtitle}</p>}
       </div>
-      {badge && <span className="chip chip-brand text-[10px]"><Sparkles className="h-3 w-3" /> {badge}</span>}
+      {badge && <span className="chip chip--brand text-[10px]"><Sparkles className="h-3 w-3" /> {badge}</span>}
     </div>
   );
 }
 
 function SectionSkeleton({ h = 256 }: { h?: number }) {
-  return <div className="shimmer rounded-2xl" style={{ height: h }} />;
+  return <div className="shimmer rounded-lg" style={{ height: h }} />;
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/60 p-6 text-sm text-muted">
+    <div className="surface-outline rounded-lg border-dashed p-6 t-body t-muted">
       {children}
     </div>
   );
@@ -479,9 +530,9 @@ function Empty({ children }: { children: React.ReactNode }) {
 function Stat({ label, value, color }: { label: string; value: string; color?: "accent" | "danger" }) {
   return (
     <div>
-      <div className="text-xs uppercase text-muted">{label}</div>
+      <div className="t-label">{label}</div>
       <div className={cn(
-        "mt-1 text-lg font-bold tabular-nums",
+        "mt-1 t-num text-lg font-bold",
         color === "accent" && "text-accent",
         color === "danger" && "text-danger",
       )}>

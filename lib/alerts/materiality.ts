@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createHash } from "crypto";
 import { redis } from "../redis";
-import { nvidiaChat } from "../nvidia";
+import { runLLM } from "../ai/chat";
 import type { NewsItem } from "../news";
 
 const ScoreSchema = z.object({
@@ -55,7 +55,8 @@ export async function scoreHeadlines(
     .map((h, i) => `${i + 1}. [${h.publisher}] "${h.title}" (url: ${h.url})`)
     .join("\n");
 
-  const raw = await nvidiaChat(
+  const raw = await runLLM(
+    "fast",
     [
       {
         role: "system",

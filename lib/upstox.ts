@@ -3,7 +3,6 @@
 
 import { cache } from "react";
 import { redis } from "./redis";
-import { STALE_TTL_SECONDS, readStaleMany, staleKey } from "./stale-cache";
 import { fetchQuotesFallback } from "./sources";
 import { yahooFetch } from "./yahoo/client";
 
@@ -21,7 +20,7 @@ export type Quote = {
   updatedAt: number;
 };
 
-const CACHE_TTL_SECONDS = 60;
+const CACHE_TTL_SECONDS = 180;
 const YAHOO_BATCH_SIZE = 80;
 
 function cacheKey(symbol: string, exchange: string) {
@@ -89,22 +88,15 @@ export async function getQuotes(
         for (const q of allFresh) {
           const k = cacheKey(q.symbol, q.exchange);
           pipe.set(k, q, { ex: CACHE_TTL_SECONDS });
-          pipe.set(staleKey(k), q, { ex: STALE_TTL_SECONDS });
         }
         await pipe.exec();
       } catch {}
     }
 
-    const stillMissing = unique.filter((it) => !found.has(`${it.exchange}:${it.symbol}`));
-    if (stillMissing.length > 0) {
-      const stale = await readStaleMany<Quote>(
-        stillMissing.map((it) => cacheKey(it.symbol, it.exchange)),
-      );
-      stillMissing.forEach((it, i) => {
-        const s = stale[i];
-        if (s) found.set(`${it.exchange}:${it.symbol}`, s);
-      });
-    }
+    // Any symbols still missing after Yahoo + NSE fallback stay missing —
+    // the LRU wrapper in `lib/redis.ts` already serves stale-on-fail for the
+    // live key, so a separate 7-day `stale:` mirror is no longer worth its
+    // per-write cost on the hot path.
   }
 
   return unique

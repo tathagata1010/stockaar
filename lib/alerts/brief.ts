@@ -1,5 +1,5 @@
 import { redis } from "../redis";
-import { nvidiaChat } from "../nvidia";
+import { runLLM } from "../ai/chat";
 import type { NewsItem } from "../news";
 import type { TriggerKind } from "./schema";
 
@@ -82,7 +82,8 @@ async function callLLM(i: BriefInput): Promise<string | null> {
     triggerLines.push(`- Fresh headline: "${i.news.title}" — ${i.news.publisher}`);
   }
 
-  const raw = await nvidiaChat(
+  const raw = await runLLM(
+    "brief",
     [
       {
         role: "system",

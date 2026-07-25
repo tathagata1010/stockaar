@@ -1,7 +1,6 @@
 import { cache } from "react";
 import { redis } from "./redis";
-import { writeStale, readStale } from "./stale-cache";
-import { fetchFundamentalsFallback } from "./sources";
+import { fetchCompanyProfile, fetchFundamentalsFallback } from "./sources";
 import { yahooFetch } from "./yahoo/client";
 
 export type AnalystCounts = {
@@ -46,20 +45,32 @@ export type Fundamentals = {
   targetHighPrice?: number;
   targetLowPrice?: number;
   numberOfAnalystOpinions?: number;
+  longBusinessSummary?: string;
+  industry?: string;
+  sector?: string;
+  website?: string;
+  fullTimeEmployees?: number;
+  country?: string;
+  city?: string;
   updatedAt: number;
 };
 
-const CACHE_TTL_SECONDS = 60 * 60 * 6;
+const CACHE_TTL_SECONDS = 60 * 60 * 24;
 // Yahoo doesn't recognize every NSE symbol (delistings, NSE-only IPOs that
 // haven't reached Yahoo's coverage yet). Once we see a 404, remember it for a
-// day so we stop re-asking on every page load.
+// day so we stop re-asking on every page load. Stored under the SAME key as a
+// { notFound } marker so one cache read covers both hit and negative-hit paths.
 const NEGATIVE_CACHE_TTL_SECONDS = 60 * 60 * 24;
 
-function fundamentalsKey(symbol: string, exchange: string) {
-  return `fundamentals:${exchange}:${symbol}:v6`;
+type NotFoundMarker = { notFound: true; updatedAt: number };
+type CachedFundamentals = Fundamentals | NotFoundMarker;
+
+function isNotFound(v: CachedFundamentals | null | undefined): v is NotFoundMarker {
+  return !!v && (v as NotFoundMarker).notFound === true;
 }
-function notFoundKey(symbol: string, exchange: string) {
-  return `fundamentals:404:${exchange}:${symbol}`;
+
+function fundamentalsKey(symbol: string, exchange: string) {
+  return `fundamentals:${exchange}:${symbol}:v7`;
 }
 
 export const getFundamentals = cache(async (
@@ -67,41 +78,104 @@ export const getFundamentals = cache(async (
   exchange: "NSE" | "BSE" = "NSE",
 ): Promise<Fundamentals | null> => {
   const key = fundamentalsKey(symbol, exchange);
-  const cached = await redis.get<Fundamentals>(key).catch(() => null);
+  const cached = await redis.get<CachedFundamentals>(key).catch(() => null);
+  if (isNotFound(cached)) return null;
   if (cached) return cached;
 
-  const notFound = await redis.get<number>(notFoundKey(symbol, exchange)).catch(() => null);
-  if (notFound) return null;
-
-  const [summary, quote] = await Promise.all([
-    fetchYahooQuoteSummary(symbol, exchange),
-    fetchYahooQuote(symbol, exchange),
-  ]);
-  let merged = mergeFundamentals(symbol, exchange, summary, quote);
-
-  // If Yahoo gave us nothing useful, try Tickertape before falling back to stale.
-  if (!merged) {
-    const tt = await fetchFundamentalsFallback(symbol, exchange);
-    if (tt) merged = mergeFundamentals(symbol, exchange, tt, null);
-  }
-
+  const merged = await fetchAndMerge(symbol, exchange);
   if (merged) {
     await redis.set(key, merged, { ex: CACHE_TTL_SECONDS }).catch(() => {});
-    await writeStale(key, merged);
     return merged;
   }
-  return readStale<Fundamentals>(key);
+  // Persist a not-found marker so we stop re-querying Yahoo for symbols it
+  // doesn't cover. Same key as the positive cache — one lookup handles both.
+  await redis
+    .set(key, { notFound: true, updatedAt: Date.now() } satisfies NotFoundMarker, {
+      ex: NEGATIVE_CACHE_TTL_SECONDS,
+    })
+    .catch(() => {});
+  return null;
 });
+
+async function fetchAndMerge(
+  symbol: string,
+  exchange: "NSE" | "BSE",
+): Promise<Fundamentals | null> {
+  const [summary, quote, profile] = await Promise.all([
+    fetchYahooQuoteSummary(symbol, exchange),
+    fetchYahooQuote(symbol, exchange),
+    fetchCompanyProfile(symbol, exchange),
+  ]);
+  let merged = mergeFundamentals(symbol, exchange, summary, quote, profile);
+  if (!merged) {
+    const tt = await fetchFundamentalsFallback(symbol, exchange);
+    if (tt) merged = mergeFundamentals(symbol, exchange, tt, null, profile);
+  }
+  return merged;
+}
+
+/**
+ * Bulk variant used by the universe rebuild path. One `mget` covers all cache
+ * checks (~2000 keys → 1 command), and only cache misses fan out to Yahoo.
+ * Cuts fundamentals-related Redis traffic per rebuild from ~4000 commands
+ * (2 gets × 2000 symbols in the per-call path) down to ~1 + N-writes.
+ */
+export async function getFundamentalsMany(
+  entries: Array<{ symbol: string; exchange: "NSE" | "BSE" }>,
+  concurrency = 24,
+): Promise<Map<string, Fundamentals | null>> {
+  const out = new Map<string, Fundamentals | null>();
+  if (entries.length === 0) return out;
+
+  const keys = entries.map((e) => fundamentalsKey(e.symbol, e.exchange));
+  const cached = (await redis
+    .mget<(CachedFundamentals | null)[]>(...keys)
+    .catch(() => keys.map(() => null))) as (CachedFundamentals | null)[];
+
+  const misses: Array<{ symbol: string; exchange: "NSE" | "BSE"; key: string; mapKey: string }> = [];
+  entries.forEach((e, i) => {
+    const val = cached[i];
+    const mapKey = `${e.exchange}:${e.symbol}`;
+    if (isNotFound(val)) out.set(mapKey, null);
+    else if (val) out.set(mapKey, val);
+    else misses.push({ ...e, key: keys[i], mapKey });
+  });
+
+  for (let i = 0; i < misses.length; i += concurrency) {
+    const batch = misses.slice(i, i + concurrency);
+    await Promise.all(
+      batch.map(async (m) => {
+        const merged = await fetchAndMerge(m.symbol, m.exchange).catch(() => null);
+        if (merged) {
+          out.set(m.mapKey, merged);
+          await redis.set(m.key, merged, { ex: CACHE_TTL_SECONDS }).catch(() => {});
+        } else {
+          out.set(m.mapKey, null);
+          await redis
+            .set(
+              m.key,
+              { notFound: true, updatedAt: Date.now() } satisfies NotFoundMarker,
+              { ex: NEGATIVE_CACHE_TTL_SECONDS },
+            )
+            .catch(() => {});
+        }
+      }),
+    );
+  }
+
+  return out;
+}
 
 function mergeFundamentals(
   symbol: string,
   exchange: "NSE" | "BSE",
   a: Partial<Fundamentals> | null,
   b: Partial<Fundamentals> | null,
+  c: Partial<Fundamentals> | null = null,
 ): Fundamentals | null {
-  if (!a && !b) return null;
+  if (!a && !b && !c) return null;
   const pick = <K extends keyof Fundamentals>(k: K): Fundamentals[K] =>
-    (a?.[k] ?? b?.[k]) as Fundamentals[K];
+    (a?.[k] ?? b?.[k] ?? c?.[k]) as Fundamentals[K];
   return {
     symbol,
     exchange,
@@ -134,6 +208,13 @@ function mergeFundamentals(
     targetHighPrice: pick("targetHighPrice"),
     targetLowPrice: pick("targetLowPrice"),
     numberOfAnalystOpinions: pick("numberOfAnalystOpinions"),
+    longBusinessSummary: pick("longBusinessSummary"),
+    industry: pick("industry"),
+    sector: pick("sector"),
+    website: pick("website"),
+    fullTimeEmployees: pick("fullTimeEmployees"),
+    country: pick("country"),
+    city: pick("city"),
     updatedAt: Date.now(),
   };
 }
@@ -181,6 +262,7 @@ async function fetchYahooQuoteSummary(
     "recommendationTrend",
     "calendarEvents",
     "price",
+    "assetProfile",
   ].join(",");
 
   const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol + suffix)}?modules=${encodeURIComponent(modules)}`;
@@ -188,11 +270,9 @@ async function fetchYahooQuoteSummary(
   try {
     const res = await yahooFetch(url);
     if (!res || !res.ok) {
-      if (res?.status === 404) {
-        redis
-          .set(notFoundKey(symbol, exchange), Date.now(), { ex: NEGATIVE_CACHE_TTL_SECONDS })
-          .catch(() => {});
-      }
+      // 404 → the caller (getFundamentals / getFundamentalsMany) writes the
+      // { notFound } marker under the main cache key once all fallbacks fail.
+      // Nothing to do here.
       return null;
     }
     const json = await res.json();
@@ -202,6 +282,7 @@ async function fetchYahooQuoteSummary(
     const sd = result.summaryDetail ?? {};
     const dks = result.defaultKeyStatistics ?? {};
     const fd = result.financialData ?? {};
+    const ap = result.assetProfile ?? {};
     const rtTrend = (result.recommendationTrend?.trend ?? []) as Array<{
       period?: string;
       strongBuy?: number;
@@ -269,6 +350,13 @@ async function fetchYahooQuoteSummary(
       targetHighPrice: vn(fd.targetHighPrice),
       targetLowPrice: vn(fd.targetLowPrice),
       numberOfAnalystOpinions: vn(fd.numberOfAnalystOpinions),
+      longBusinessSummary: typeof ap.longBusinessSummary === "string" ? ap.longBusinessSummary : undefined,
+      industry: typeof ap.industry === "string" ? ap.industry : undefined,
+      sector: typeof ap.sector === "string" ? ap.sector : undefined,
+      website: typeof ap.website === "string" ? ap.website : undefined,
+      fullTimeEmployees: vn(ap.fullTimeEmployees),
+      country: typeof ap.country === "string" ? ap.country : undefined,
+      city: typeof ap.city === "string" ? ap.city : undefined,
     };
   } catch (e) {
     console.warn("[yahoo-fundamentals] error", e);

@@ -4,6 +4,9 @@ function istDate(): string {
   return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+// DEPRECATED for the chat route (use `lib/ratelimit/check.ts` sliding-window
+// limiter instead). Kept alive because doctor + OCR routes still rely on this
+// simpler calendar-day counter.
 export async function checkAndIncrement({
   key,
   limit,

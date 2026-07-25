@@ -1,20 +1,20 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { getUniverse } from "@/lib/universe";
 import { deriveSignal } from "@/lib/scorecard";
-import { cn } from "@/lib/utils";
 import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { CallsGridLazy } from "@/components/CallsGridLazy";
 import { AppShell } from "@/components/shell/AppShell";
+import { UrlTabs } from "@/components/ui/UrlTabs";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export const metadata = {
-  title: "Stock Calls — Buy, Hold, Sell Signals",
-  description: "Algorithmic Buy / Hold / Sell signals on Indian stocks with transparent reasoning. Updated through the trading day.",
+  title: "Signal Board — Data-Driven Stock Tilts",
+  description: "Data-derived positive / neutral / caution tilts on Indian stocks with transparent reasoning. Educational — never prescriptive.",
   alternates: { canonical: "/calls" },
-  keywords: ["buy sell signals India", "stock calls NSE", "stock recommendations India"],
+  keywords: ["stock scorecard India", "NSE data screener", "Indian equity analysis"],
 };
 
 export default async function CallsPage(props: { searchParams: Promise<{ tab?: string }> }) {
@@ -22,14 +22,16 @@ export default async function CallsPage(props: { searchParams: Promise<{ tab?: s
   const tab = (searchParams.tab ?? "ALL").toUpperCase();
   return (
     <AppShell>
-      <h1 className="text-3xl font-bold">Stock Calls</h1>
-      <p className="mt-2 text-muted">Algorithmic Buy / Hold / Sell signals derived from the 4-pillar Scorecard.</p>
+      <h1 className="text-3xl font-bold">Signal Board</h1>
+      <p className="mt-2 t-muted">Data-derived tilts from the 4-pillar Scorecard. Educational context, not a recommendation.</p>
 
       <Disclaimer variant="bold" className="mt-4" />
 
       <Suspense fallback={<CallsShell />}>
         <CallsInner tab={tab} />
       </Suspense>
+
+      <PageFooter kind="market" />
     </AppShell>
   );
 }
@@ -45,26 +47,28 @@ async function CallsInner({ tab }: { tab: string }) {
 
   const counts = {
     ALL: all.length,
-    BUY: all.filter((c) => c.signal === "BUY").length,
-    HOLD: all.filter((c) => c.signal === "HOLD").length,
-    SELL: all.filter((c) => c.signal === "SELL").length,
+    POSITIVE: all.filter((c) => c.signal === "POSITIVE").length,
+    NEUTRAL: all.filter((c) => c.signal === "NEUTRAL").length,
+    CAUTION: all.filter((c) => c.signal === "CAUTION").length,
   };
+
+  const TAB_LABEL: Record<keyof typeof counts, string> = {
+    ALL: "All",
+    POSITIVE: "Positive",
+    NEUTRAL: "Neutral",
+    CAUTION: "Caution",
+  };
+
+  const tabs = (["ALL", "POSITIVE", "NEUTRAL", "CAUTION"] as const).map((t) => ({
+    value: t,
+    label: TAB_LABEL[t],
+    count: counts[t],
+  }));
 
   return (
     <>
-      <div className="mt-6 flex gap-2 text-sm">
-        {(["ALL", "BUY", "HOLD", "SELL"] as const).map((t) => (
-          <Link
-            key={t}
-            href={`/calls?tab=${t}`}
-            className={cn(
-              "rounded-md border px-3 py-1.5",
-              tab === t ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:text-fg",
-            )}
-          >
-            {t} <span className="ml-1 text-xs opacity-70">({counts[t]})</span>
-          </Link>
-        ))}
+      <div className="mt-6">
+        <UrlTabs paramName="tab" tabs={tabs} defaultValue="ALL" />
       </div>
 
       <div className="mt-6">
@@ -83,8 +87,8 @@ async function CallsInner({ tab }: { tab: string }) {
       </div>
 
       {sorted.length === 0 && (
-        <p className="mt-6 rounded-lg border border-border bg-card p-6 text-sm text-muted">
-          No calls in this category right now.
+        <p className="surface mt-6 p-6 t-body t-muted">
+          Nothing matches this filter right now.
         </p>
       )}
     </>

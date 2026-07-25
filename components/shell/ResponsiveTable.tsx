@@ -38,7 +38,7 @@ export function ResponsiveTable<T>({
   return (
     <>
       {/* Desktop table */}
-      <div className={cn("hidden md:block overflow-x-auto rounded-2xl border border-border bg-card/60", className)}>
+      <div className={cn("surface hidden overflow-x-auto md:block", className)}>
         <table className="min-w-full text-sm">
           <thead className="bg-bg-2/40 text-[11px] uppercase tracking-wider text-muted">
             <tr>
@@ -86,7 +86,7 @@ export function ResponsiveTable<T>({
           const primary = columns.filter((c) => c.primary);
           const rest = columns.filter((c) => !c.primary && !c.hideOnMobile);
           return (
-            <div key={rowKey(row)} className="rounded-2xl border border-border bg-card/60 p-4 shadow-soft">
+            <div key={rowKey(row)} className="surface p-4 shadow-soft">
               {primary.length > 0 && (
                 <div className="mb-3 flex items-start justify-between gap-3">
                   {primary.map((c) => (

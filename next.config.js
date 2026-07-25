@@ -12,7 +12,7 @@ const nextConfig = {
   // pdfjs-dist ships .mjs files that webpack's RSC bundler mishandles
   // (throws "Object.defineProperty called on non-object"). Load it at runtime
   // from node_modules instead so Node's native ESM loader handles it.
-  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist", "jsdom", "@mozilla/readability", "dompurify"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

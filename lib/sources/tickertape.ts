@@ -61,6 +61,65 @@ type TtScreenerResponse = {
   };
 };
 
+type TtInfoResponse = {
+  data?: {
+    info?: {
+      name?: string;
+      slug?: string;
+      description?: string;
+      about?: string;
+      sector?: string;
+      industry?: string;
+      subindustry?: string;
+      website?: string;
+      employees?: number;
+      hq?: { city?: string; country?: string };
+    };
+  };
+};
+
+const INFO_KEY = (sid: string) => `tt:info:${sid}`;
+const INFO_TTL_S = 60 * 60 * 24 * 7;
+
+export async function fetchTickertapeInfo(
+  symbol: string,
+  exchange: "NSE" | "BSE",
+): Promise<Partial<Fundamentals> | null> {
+  if (exchange !== "NSE") return null;
+  if (process.env.TICKERTAPE_DISABLE === "1") return null;
+
+  const sid = await resolveSid(symbol);
+  if (!sid) return null;
+
+  const cached = await redis.get<Partial<Fundamentals>>(INFO_KEY(sid)).catch(() => null);
+  if (cached) return cached;
+
+  const url = `${TT_BASE}/stocks/info/${encodeURIComponent(sid)}`;
+  const res = await fetch(url, { headers: HEADERS, cache: "no-store" }).catch(() => null);
+  if (!res || !res.ok) return null;
+  let json: TtInfoResponse;
+  try {
+    json = (await res.json()) as TtInfoResponse;
+  } catch {
+    return null;
+  }
+  const info = json.data?.info;
+  if (!info) return null;
+
+  const out: Partial<Fundamentals> = {
+    longBusinessSummary: info.description ?? info.about ?? undefined,
+    industry: info.industry ?? info.subindustry ?? undefined,
+    sector: info.sector ?? undefined,
+    website: info.website ?? undefined,
+    fullTimeEmployees: typeof info.employees === "number" ? info.employees : undefined,
+    city: info.hq?.city ?? undefined,
+    country: info.hq?.country ?? undefined,
+  };
+
+  await redis.set(INFO_KEY(sid), out, { ex: INFO_TTL_S }).catch(() => {});
+  return out;
+}
+
 export async function fetchTickertapeFundamentals(
   symbol: string,
   exchange: "NSE" | "BSE",

@@ -20,11 +20,13 @@ export function StickyScrollLayout({
   sections,
   children,
   rightHeader,
+  rightRail,
 }: {
   hero: ReactNode;
   sections: StickySection[];
   children: ReactNode;
   rightHeader?: ReactNode;
+  rightRail?: ReactNode;
 }) {
   const [active, setActive] = useState<string>(sections[0]?.id ?? "");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +61,15 @@ export function StickyScrollLayout({
   }
 
   return (
-    <div ref={containerRef} className="grid min-w-0 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+    <div
+      ref={containerRef}
+      className={cn(
+        "grid min-w-0 gap-6",
+        rightRail
+          ? "lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_300px]"
+          : "lg:grid-cols-[300px_minmax(0,1fr)]",
+      )}
+    >
       {/* MOBILE/TABLET — compact hero + horizontal pill nav */}
       <div className="min-w-0 lg:hidden">
         <div className="mesh-hero rounded-2xl border border-border-strong bg-card/50 p-4 shadow-glow sm:p-6">
@@ -150,6 +160,13 @@ export function StickyScrollLayout({
         {rightHeader}
         <div className="space-y-8">{children}</div>
       </div>
+
+      {/* FAR RIGHT — persistent rail (xl+ only) */}
+      {rightRail ? (
+        <aside className="hidden xl:sticky xl:top-24 xl:self-start xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto xl:block pl-1">
+          {rightRail}
+        </aside>
+      ) : null}
     </div>
   );
 }

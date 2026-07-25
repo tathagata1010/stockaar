@@ -7,6 +7,7 @@ import { MarketTickerStripAsync } from "@/components/MarketTickerStrip";
 import { NavProgress } from "@/components/NavProgress";
 import { PageTransition } from "@/components/anim/PageTransition";
 import { Toaster } from "@/components/Toaster";
+import { AgentFab } from "@/components/agent/AgentFab";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -19,11 +20,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Suspense fallback={null}><NavProgress /></Suspense>
       <MarketTickerStripAsync />
       <Header email={user.email ?? ""} />
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto max-w-[1520px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <PageTransition>{children}</PageTransition>
       </div>
       <Footer />
       <Toaster />
+      <AgentFab />
     </div>
   );
 }

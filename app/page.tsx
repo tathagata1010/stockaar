@@ -90,7 +90,7 @@ type LiveStock = {
   price: number | null;
   changePct: number | null;
   score: number | null;
-  signal: "BUY" | "HOLD" | "SELL" | null;
+  signal: "POSITIVE" | "NEUTRAL" | "CAUTION" | null;
   brief?: string;
   bull?: number | null;
   base?: number | null;
@@ -190,24 +190,24 @@ function SiteHeader() {
     { href: "#pricing", label: "Pricing" },
   ];
   return (
-    <header className="sticky top-[72px] z-30 border-b border-border-strong bg-bg/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-3">
+    <header className="surface-glass sticky top-[72px] z-30">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-2.5">
         <Link href="/" className="inline-flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-gradient text-brand-fg shadow-pop">
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-gradient text-brand-fg shadow-e1">
             <Sparkles className="h-4 w-4" />
           </span>
-          <span className="num-display text-xl font-bold">{APP_NAME}</span>
+          <span className="num-display text-lg font-bold">{APP_NAME}</span>
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className="rounded-lg px-3 py-2 text-sm text-fg/80 hover:text-brand">
+            <Link key={n.href} href={n.href} className="rounded-md px-3 py-1.5 text-sm t-mid transition-colors duration-fast ease-out hover:text-brand">
               {n.label}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link href="/auth/login" className="hidden rounded-lg px-3 py-2 text-sm text-fg/80 hover:text-brand sm:inline-flex">
+          <Link href="/auth/login" className="hidden rounded-md px-3 py-1.5 text-sm t-mid hover:text-brand sm:inline-flex">
             Log in
           </Link>
           <Link href="/auth/signup" className="btn-brand">Sign up free</Link>
@@ -224,18 +224,18 @@ function Hero() {
       <div className="absolute inset-0 mesh-hero opacity-70" />
       <div className="relative mx-auto max-w-6xl px-6 pb-12 pt-16 md:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1 text-[11px] backdrop-blur">
+          <div className="chip chip--muted">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
             </span>
-            <span className="text-muted">Live NSE / BSE · prices update on every page load</span>
+            <span>Live NSE / BSE · prices update on every page load</span>
           </div>
-          <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
+          <h1 className="t-display mt-6">
             Know exactly what to do with{" "}
             <span className="text-gradient-3">your stocks.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted md:text-lg">
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed t-mid md:text-lg">
             Live prices, AI briefs, scorecards, anomalies and earnings — for the stocks
             <em className="not-italic font-medium text-fg"> you</em> follow. We email you the moment something hits a buy
             or sell zone. No charts to stare at.
@@ -244,11 +244,11 @@ function Hero() {
             <Link href="/auth/signup" className="btn-brand inline-flex items-center gap-2 px-6 py-3 text-base">
               Track your first stock free <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="#demo" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium hover:border-brand">
+            <Link href="#demo" className="btn-ghost">
               <PlayCircle className="h-4 w-4 text-brand" /> See it in action
             </Link>
           </div>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[11px] text-muted">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 t-caption">
             <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-accent" /> No credit card</span>
             <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-accent" /> 3 stocks free forever</span>
             <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-accent" /> Razorpay secure checkout</span>
@@ -296,7 +296,7 @@ async function FloatingChipsAsync() {
               className={positions[i]}
               sym={s.symbol}
               sector={s.sector}
-              signal={s.signal ?? "HOLD"}
+              signal={s.signal ?? "NEUTRAL"}
             />
           );
         })}
@@ -332,13 +332,13 @@ function PreviewSkeleton() {
 }
 
 function FloatingChip({ className, sym, sector, signal }: {
-  className: string; sym: string; sector?: string; signal: "BUY" | "HOLD" | "SELL";
+  className: string; sym: string; sector?: string; signal: "POSITIVE" | "NEUTRAL" | "CAUTION";
 }) {
   const tone =
-    signal === "BUY" ? "border-accent/30 bg-accent/10 text-accent"
-    : signal === "SELL" ? "border-danger/30 bg-danger/10 text-danger"
+    signal === "POSITIVE" ? "border-accent/30 bg-accent/10 text-accent"
+    : signal === "CAUTION" ? "border-danger/30 bg-danger/10 text-danger"
     : "border-brand/30 bg-brand/10 text-brand";
-  const label = signal === "BUY" ? "Buy" : signal === "SELL" ? "Sell" : "Hold";
+  const label = signal === "POSITIVE" ? "Positive" : signal === "CAUTION" ? "Caution" : "Neutral";
   return (
     <div className={`absolute ${className}`}>
       <div className={`inline-flex items-center gap-1.5 rounded-full border bg-card/80 px-2 py-1 text-[11px] font-medium shadow-pop backdrop-blur ${tone}`}>
@@ -357,7 +357,7 @@ function PreviewWatchlist({ stocks }: { stocks: LiveStock[] }) {
   const bull = leadPrice ? Math.round(leadPrice * 1.16) : null;
   const base = leadPrice ? Math.round(leadPrice * 1.07) : null;
   const bear = leadPrice ? Math.round(leadPrice * 0.90) : null;
-  const leadSig = lead?.signal ?? "BUY";
+  const leadSig = lead?.signal ?? "POSITIVE";
   return (
     <div className="grid gap-0 md:grid-cols-[1fr_300px]">
       <div className="overflow-x-auto">
@@ -375,7 +375,7 @@ function PreviewWatchlist({ stocks }: { stocks: LiveStock[] }) {
             {stocks.map((r) => {
               const up = (r.changePct ?? 0) >= 0;
               const score = r.score ?? 65;
-              const sig = r.signal ?? "HOLD";
+              const sig = r.signal ?? "NEUTRAL";
               return (
                 <tr key={r.symbol} className="border-b border-border last:border-0 hover:bg-bg/40">
                   <td className="px-4 py-3">
@@ -406,8 +406,8 @@ function PreviewWatchlist({ stocks }: { stocks: LiveStock[] }) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold ring-1 ${
-                      sig === "BUY" ? "bg-accent/15 text-accent ring-accent/30"
-                      : sig === "SELL" ? "bg-danger/15 text-danger ring-danger/30"
+                      sig === "POSITIVE" ? "bg-accent/15 text-accent ring-accent/30"
+                      : sig === "CAUTION" ? "bg-danger/15 text-danger ring-danger/30"
                       : "bg-brand/15 text-brand ring-brand/30"
                     }`}>{sig}</span>
                   </td>
@@ -428,8 +428,8 @@ function PreviewWatchlist({ stocks }: { stocks: LiveStock[] }) {
         </div>
         <div className="mt-3 flex items-center gap-2">
           <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ${
-            leadSig === "BUY" ? "bg-accent/15 text-accent ring-accent/30"
-            : leadSig === "SELL" ? "bg-danger/15 text-danger ring-danger/30"
+            leadSig === "POSITIVE" ? "bg-accent/15 text-accent ring-accent/30"
+            : leadSig === "CAUTION" ? "bg-danger/15 text-danger ring-danger/30"
             : "bg-brand/15 text-brand ring-brand/30"
           }`}>{leadSig}</span>
           <span className="text-[11px] text-muted">Risk · Medium</span>
@@ -720,8 +720,8 @@ function NewsletterCTA() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
             <Mail className="h-3 w-3" /> Free every weekday
           </span>
-          <h3 className="mt-4 text-3xl font-bold md:text-4xl">The market today, in plain English.</h3>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+          <h3 className="t-hero mt-4">The market today, in plain English.</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm t-mid">
             3-minute morning brief. What moved, why it moved, what to watch. Zero CFA jargon.
           </p>
           <NewsletterForm />
@@ -954,11 +954,11 @@ function FinalCTA() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand">
             <Sparkles className="h-3 w-3" /> Start in 30 seconds
           </span>
-          <h2 className="mt-4 text-3xl font-bold md:text-5xl">
+          <h2 className="t-display mt-4">
             Stop guessing.<br />
             <span className="text-gradient-3">Start knowing.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-sm text-muted md:text-base">
+          <p className="mx-auto mt-4 max-w-xl text-sm t-mid md:text-base">
             Join thousands of Indian investors who use {APP_NAME} to cut through the noise.
             Free forever for 3 stocks.
           </p>
@@ -966,7 +966,7 @@ function FinalCTA() {
             <Link href="/auth/signup" className="btn-brand inline-flex items-center gap-2 px-6 py-3 text-base">
               Create free account <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium hover:border-brand">
+            <Link href="/pricing" className="btn-ghost">
               See pricing
             </Link>
           </div>
@@ -982,11 +982,11 @@ function SectionHeader({ eyebrow, title, sub, href }: { eyebrow: React.ReactNode
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-xl">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand">
+        <div className="chip chip--brand">
           {eyebrow}
         </div>
-        <h2 className="mt-3 text-2xl font-bold md:text-3xl">{title}</h2>
-        {sub && <p className="mt-2 text-sm text-muted">{sub}</p>}
+        <h2 className="t-hero mt-3">{title}</h2>
+        {sub && <p className="mt-2 text-sm t-mid">{sub}</p>}
       </div>
       {href && (
         <Link href={href} className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">

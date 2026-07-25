@@ -3,7 +3,6 @@
 
 import { cache } from "react";
 import { redis } from "./redis";
-import { writeStale, readStale } from "./stale-cache";
 import { yahooFetch } from "./yahoo/client";
 
 export type HistoryPoint = { t: number; p: number; v?: number };
@@ -52,10 +51,9 @@ export const fetchYahooHistory = cache(async (
   const fresh = await fetchYahooHistoryUncached(symbol, exchange, range);
   if (fresh) {
     await redis.set(key, fresh, { ex: TTL_S[range] }).catch(() => {});
-    await writeStale(key, fresh);
     return fresh;
   }
-  return readStale<HistoryResult>(key);
+  return null;
 });
 
 async function fetchYahooHistoryUncached(

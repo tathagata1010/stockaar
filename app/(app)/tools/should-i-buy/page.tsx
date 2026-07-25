@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getUniverse } from "@/lib/universe";
-import { Disclaimer } from "@/components/Disclaimer";
+import { PageFooter } from "@/components/PageFooter";
 import { SymbolPicker } from "@/components/SymbolPicker";
 import { cn, formatINR, formatPct, formatCompactINR } from "@/lib/utils";
 import { Gauge, Sparkles, ShieldCheck, Clock, Target, ArrowUpRight, ArrowDownRight, AlertTriangle } from "lucide-react";
@@ -32,22 +32,24 @@ function fmtPct(v: unknown, digits = 2): string {
   return n === null ? "—" : `${(n * 100).toFixed(digits)}%`;
 }
 
-type Verdict = "STRONG BUY" | "BUY" | "HOLD" | "AVOID" | "SELL";
+// SEBI-safe verdict vocabulary. These describe the underlying data tilt, not
+// an action. We never emit BUY/SELL/HOLD directly.
+type Verdict = "STRONG POSITIVE" | "POSITIVE" | "NEUTRAL" | "CAUTION" | "NEGATIVE";
 
 const VERDICT_STYLE: Record<Verdict, { bg: string; ring: string; text: string }> = {
-  "STRONG BUY": { bg: "bg-accent/15", ring: "ring-accent/40", text: "text-accent" },
-  "BUY":        { bg: "bg-accent/10", ring: "ring-accent/30", text: "text-accent" },
-  "HOLD":       { bg: "bg-brand/10",  ring: "ring-brand/30",  text: "text-brand"  },
-  "AVOID":      { bg: "bg-warning/10",ring: "ring-warning/40",text: "text-warning"},
-  "SELL":       { bg: "bg-danger/15", ring: "ring-danger/40", text: "text-danger" },
+  "STRONG POSITIVE": { bg: "bg-accent/15", ring: "ring-accent/40", text: "text-accent" },
+  "POSITIVE":        { bg: "bg-accent/10", ring: "ring-accent/30", text: "text-accent" },
+  "NEUTRAL":         { bg: "bg-brand/10",  ring: "ring-brand/30",  text: "text-brand"  },
+  "CAUTION":         { bg: "bg-warning/10",ring: "ring-warning/40",text: "text-warning"},
+  "NEGATIVE":        { bg: "bg-danger/15", ring: "ring-danger/40", text: "text-danger" },
 };
 
-function computeVerdict(score: number, momentum: number, rangePos: number | null): Verdict {
-  if (score >= 75 && momentum >= 60) return "STRONG BUY";
-  if (score >= 65) return "BUY";
-  if (score >= 50) return rangePos != null && rangePos > 90 ? "HOLD" : "HOLD";
-  if (score >= 40) return "AVOID";
-  return "SELL";
+function computeVerdict(score: number, momentum: number): Verdict {
+  if (score >= 75 && momentum >= 60) return "STRONG POSITIVE";
+  if (score >= 65) return "POSITIVE";
+  if (score >= 50) return "NEUTRAL";
+  if (score >= 40) return "CAUTION";
+  return "NEGATIVE";
 }
 
 function timeHorizon(score: number, growth: number, quality: number): string {
@@ -74,16 +76,16 @@ export default async function ShouldIBuyPage(
 
   return (
     <AppShell>
-      <section className="mesh-hero relative overflow-hidden rounded-3xl border border-border-strong bg-card/40 p-4 shadow-glow sm:p-6 md:p-8 lg:p-10">
-        <div className="chip chip-brand mb-3">
+      <section className="mesh-hero relative overflow-hidden rounded-3xl border border-hairline-strong bg-card/40 p-4 shadow-e4 sm:p-6 md:p-8 lg:p-10">
+        <div className="chip chip--brand mb-3">
           <Gauge className="h-3 w-3" />
           Tools · Algorithmic verdict
         </div>
         <h1 className="num-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
-          Should I <span className="text-gradient-animate">Buy?</span>
+          What&apos;s the <span className="text-gradient-animate">signal?</span>
         </h1>
-        <p className="mt-3 max-w-2xl text-xs text-muted sm:text-sm md:text-base">
-          Get an instant data-driven verdict for any NSE stock — combining our 4-pillar scorecard, technical position and analyst signals.
+        <p className="mt-3 max-w-2xl t-caption t-muted sm:text-sm md:text-base">
+          Data-driven signal tilt for any NSE stock — combining our 4-pillar scorecard, technical position and analyst data. Educational, never prescriptive.
         </p>
         <div className="mt-6 max-w-xl">
           <SymbolPicker defaultSymbol={symbol} />
@@ -91,8 +93,8 @@ export default async function ShouldIBuyPage(
       </section>
 
       {!symbol ? (
-        <section className="surface mt-8 rounded-2xl p-10 text-center text-sm text-muted">
-          <Sparkles className="mx-auto h-8 w-8 text-muted" />
+        <section className="surface mt-8 p-10 text-center t-body t-muted">
+          <Sparkles className="mx-auto h-8 w-8 t-muted" />
           <p className="mt-3">Pick a stock above to see the verdict.</p>
         </section>
       ) : (
@@ -101,7 +103,7 @@ export default async function ShouldIBuyPage(
         </Suspense>
       )}
 
-      <Disclaimer className="mt-10" />
+      <PageFooter kind="market" />
     </AppShell>
   );
 }
@@ -112,14 +114,14 @@ async function VerdictBlock({ symbol }: { symbol: string }) {
 
   if (!row) {
     return (
-      <section className="surface mt-8 rounded-2xl p-10 text-center text-sm text-muted">
+      <section className="surface mt-8 p-10 text-center t-body t-muted">
         We don&apos;t have <strong>{symbol}</strong> in our universe. Try another ticker.
       </section>
     );
   }
   if (!row.scorecard) {
     return (
-      <section className="surface mt-8 rounded-2xl p-10 text-center text-sm text-muted">
+      <section className="surface mt-8 p-10 text-center t-body t-muted">
         Fundamentals aren&apos;t available for <strong>{row.entry.symbol}</strong> right now. Try again in a few minutes.
       </section>
     );
@@ -150,7 +152,7 @@ function VerdictSkeleton() {
 function VerdictView({ row }: { row: NonNullable<Awaited<ReturnType<typeof getUniverse>>>[number] }) {
   if (!row.scorecard) return null;
   const sc = row.scorecard;
-  const verdict = computeVerdict(sc.composite, sc.pillars.momentum.score, row.rangePosition);
+  const verdict = computeVerdict(sc.composite, sc.pillars.momentum.score);
   const horizon = timeHorizon(sc.composite, sc.pillars.growth.score, sc.pillars.quality.score);
   const risk = riskFromBeta(row.fundamentals?.beta);
   const style = VERDICT_STYLE[verdict];
@@ -166,32 +168,32 @@ function VerdictView({ row }: { row: NonNullable<Awaited<ReturnType<typeof getUn
   return (
     <section className="mt-8 space-y-6">
       <div className={cn(
-        "fade-up overflow-hidden rounded-3xl border p-6 shadow-glow ring-1 md:p-10",
-        style.bg, style.ring, "border-border-strong",
+        "fade-up overflow-hidden rounded-lg border p-6 shadow-e4 ring-1 md:p-10",
+        style.bg, style.ring, "border-hairline-strong",
       )}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.16em] text-muted">{row.entry.name}</div>
+            <div className="t-label">{row.entry.name}</div>
             <div className="num-display mt-1 text-3xl font-bold md:text-4xl">{row.entry.symbol}</div>
-            <div className="mt-1 text-xs text-muted">{row.entry.sector} · {row.entry.industry}</div>
+            <div className="mt-1 t-caption t-muted">{row.entry.sector} · {row.entry.industry}</div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-muted">Verdict</div>
+            <div className="t-label">Verdict</div>
             <div className={cn("num-display mt-1 text-4xl font-extrabold tracking-tight md:text-5xl text-gradient-animate", style.text)}>
               {verdict}
             </div>
-            <div className="mt-1 text-xs text-muted tabular-nums">Composite {sc.composite}/100</div>
+            <div className="mt-1 t-caption t-muted t-num">Composite {sc.composite}/100</div>
           </div>
         </div>
 
         {q && (
           <div className="mt-6 flex flex-wrap items-end gap-6">
             <div>
-              <div className="text-[10px] uppercase text-muted">Last price</div>
-              <div className="num-display text-3xl font-bold tabular-nums">{formatINR(q.lastPrice)}</div>
+              <div className="t-label">Last price</div>
+              <div className="num-display text-3xl font-bold t-num">{formatINR(q.lastPrice)}</div>
             </div>
             <span className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold tabular-nums ring-1",
+              "inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold t-num ring-1",
               q.changePct >= 0 ? "bg-accent/10 text-accent ring-accent/25" : "bg-danger/10 text-danger ring-danger/25",
             )}>
               {q.changePct >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
@@ -227,7 +229,7 @@ function VerdictView({ row }: { row: NonNullable<Awaited<ReturnType<typeof getUn
         />
       </div>
 
-      <div className="surface-strong rounded-2xl border border-border p-5 shadow-soft">
+      <div className="surface p-5">
         <h3 className="text-sm font-semibold">Why this verdict</h3>
         <ul className="mt-3 space-y-2 text-sm">
           {reasons.map((r, i) => (
@@ -246,7 +248,7 @@ function VerdictView({ row }: { row: NonNullable<Awaited<ReturnType<typeof getUn
         <Pillar name="Momentum"  score={sc.pillars.momentum.score} />
       </div>
 
-      <div className="surface rounded-2xl p-5 shadow-soft">
+      <div className="surface p-5">
         <h3 className="text-sm font-semibold">Key stats</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
           <Stat label="Market cap" value={num(row.fundamentals?.marketCap) !== null ? formatCompactINR(num(row.fundamentals?.marketCap)!) : "—"} />
@@ -260,7 +262,7 @@ function VerdictView({ row }: { row: NonNullable<Awaited<ReturnType<typeof getUn
         </div>
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/5 p-3 text-xs text-fg/85">
+      <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-xs text-fg/85">
         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
         This verdict is generated algorithmically from public data. Always do your own research and consult a SEBI-registered investment adviser before trading.
       </div>
@@ -283,13 +285,13 @@ function InfoCard({ icon, label, value, sub, tone }: {
     : tone === "danger" ? "bg-danger/15 text-danger ring-danger/30"
     : "bg-brand/15 text-brand ring-brand/30";
   return (
-    <div className="surface-strong rounded-2xl p-5 shadow-soft">
+    <div className="surface p-5">
       <div className="flex items-center gap-2">
-        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg ring-1", ring)}>{icon}</span>
-        <div className="text-[10px] uppercase tracking-[0.12em] text-muted">{label}</div>
+        <span className={cn("flex h-8 w-8 items-center justify-center rounded-md ring-1", ring)}>{icon}</span>
+        <div className="t-label">{label}</div>
       </div>
       <div className="num-display mt-3 text-xl font-bold">{value}</div>
-      {sub && <div className="text-[11px] text-muted">{sub}</div>}
+      {sub && <div className="t-caption t-muted">{sub}</div>}
     </div>
   );
 }
@@ -299,11 +301,11 @@ function Pillar({ name, score }: { name: string; score: number }) {
     : score >= 50 ? "text-brand bg-brand/10 ring-brand/30"
     : "text-danger bg-danger/10 ring-danger/30";
   return (
-    <div className="surface rounded-2xl p-4 shadow-soft">
-      <div className="text-[10px] uppercase text-muted">{name}</div>
+    <div className="surface p-4">
+      <div className="t-label">{name}</div>
       <div className="mt-2 flex items-end justify-between">
-        <span className={cn("num-display rounded-md px-2 py-0.5 text-xl font-bold tabular-nums ring-1", tone)}>{score}</span>
-        <span className="text-[10px] text-muted">/100</span>
+        <span className={cn("num-display rounded-md px-2 py-0.5 text-xl font-bold t-num ring-1", tone)}>{score}</span>
+        <span className="t-caption t-muted">/100</span>
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-bg/60">
         <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${score}%` }} />
@@ -314,13 +316,13 @@ function Pillar({ name, score }: { name: string; score: number }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card/60 p-3">
-      <div className="text-[10px] uppercase text-muted">{label}</div>
-      <div className="mt-0.5 font-semibold tabular-nums">{value}</div>
+    <div className="rounded-md border border-hairline bg-card/60 p-3">
+      <div className="t-label">{label}</div>
+      <div className="mt-0.5 font-semibold t-num">{value}</div>
     </div>
   );
 }
 
 function SectionSkeleton({ h = 256 }: { h?: number }) {
-  return <div className="shimmer rounded-2xl" style={{ height: h }} />;
+  return <div className="shimmer rounded-lg" style={{ height: h }} />;
 }

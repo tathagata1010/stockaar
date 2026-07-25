@@ -7,6 +7,7 @@
 // each parsed quarter forever (30d for safety against schema drift).
 
 import { createHash } from "node:crypto";
+import { cache } from "react";
 import { XMLParser } from "fast-xml-parser";
 import { redis } from "./redis";
 import { fetchScreenerShareholding } from "./screener-shp";
@@ -250,7 +251,9 @@ async function listFilings(symbol: string): Promise<{ xbrlUrl: string; asOnDate:
   }
 }
 
-export async function getShareholdingTimeline(
+export const getShareholdingTimeline = cache(_getShareholdingTimeline);
+
+async function _getShareholdingTimeline(
   symbol: string,
   quarters = DEFAULT_QUARTERS,
 ): Promise<ShareholdingTimeline> {

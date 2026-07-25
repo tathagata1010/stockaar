@@ -101,7 +101,16 @@ export function buildScorecard(f: Fundamentals, q: Quote | null): Scorecard {
   return { composite, pillars: { valuation, growth, quality, momentum } };
 }
 
-export type Signal = "BUY" | "HOLD" | "SELL";
+// SEBI-safe tilt vocabulary. We never emit BUY/HOLD/SELL directly — those are
+// prescriptive words a Research Analyst license is required to publish. The
+// scorecard tilt describes the underlying data pattern, not an action.
+export type Signal = "POSITIVE" | "NEUTRAL" | "CAUTION";
+
+export const SIGNAL_LABEL: Record<Signal, string> = {
+  POSITIVE: "Positive",
+  NEUTRAL: "Neutral",
+  CAUTION: "Caution",
+};
 
 export function deriveSignal(sc: Scorecard): { signal: Signal; reasons: string[] } {
   const { composite, pillars } = sc;
@@ -109,8 +118,8 @@ export function deriveSignal(sc: Scorecard): { signal: Signal; reasons: string[]
   if (pillars.valuation.notes[0]) reasons.push(pillars.valuation.notes[0]);
   if (pillars.growth.notes[0]) reasons.push(pillars.growth.notes[0]);
   if (pillars.quality.notes[0]) reasons.push(pillars.quality.notes[0]);
-  let signal: Signal = "HOLD";
-  if (composite >= 70 && pillars.quality.score >= 55) signal = "BUY";
-  else if (composite < 40) signal = "SELL";
+  let signal: Signal = "NEUTRAL";
+  if (composite >= 70 && pillars.quality.score >= 55) signal = "POSITIVE";
+  else if (composite < 40) signal = "CAUTION";
   return { signal, reasons };
 }

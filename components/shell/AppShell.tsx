@@ -44,7 +44,7 @@ export function AppShell({
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-card/80 px-4 py-2 text-xs font-semibold shadow-soft backdrop-blur transition hover:border-brand/40 hover:text-brand"
+          className="inline-flex items-center gap-2 rounded-full border border-hairline-strong bg-surface-1/80 px-4 py-2 text-xs font-semibold shadow-e1 backdrop-blur transition-colors duration-fast ease-out hover:border-brand/40 hover:text-brand"
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
           {railLabel}

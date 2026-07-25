@@ -6,7 +6,8 @@
 // the filing as failed and retries on the next cron.
 
 import { z } from "zod";
-import { nvidiaChat, isNvidiaConfigured } from "@/lib/nvidia";
+import { isNvidiaConfigured } from "@/lib/nvidia";
+import { runLLM } from "@/lib/ai/chat";
 
 export const MetricEnum = z.enum(["revenue", "ebitda", "margin", "volume", "capex", "orders", "other"]);
 export const DirectionEnum = z.enum(["up", "down", "flat", "mixed"]);
@@ -80,11 +81,12 @@ export async function extractGuidance({
   headline: string;
   body: string;
 }): Promise<ExtractedSignal[] | null> {
-  if (!isNvidiaConfigured()) return null;
+  if (!isNvidiaConfigured() && !process.env.GROQ_API_KEY) return null;
   const text = (body || "").trim();
   if (text.length < 30) return [];
 
-  const raw = await nvidiaChat(
+  const raw = await runLLM(
+    "brief",
     [
       { role: "system", content: SYSTEM },
       { role: "user", content: userPrompt(headline, text) },

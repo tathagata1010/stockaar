@@ -59,9 +59,9 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-[400px_1fr]">
       <aside className="lg:sticky lg:top-20 lg:self-start">
-        <div className="surface-strong rounded-2xl border border-border p-5 shadow-soft">
+        <div className="surface p-5">
           <h2 className="text-sm font-semibold">Paste your holdings</h2>
-          <p className="mt-1 text-[11px] text-muted">
+          <p className="mt-1 t-caption t-muted">
             Format: <code className="rounded bg-card px-1.5 py-0.5">SYMBOL,QTY,AVG_PRICE</code> · one per line.
           </p>
           <textarea
@@ -69,10 +69,10 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
             onChange={(e) => setText(e.target.value)}
             rows={10}
             placeholder={SAMPLE}
-            className="mt-3 w-full rounded-lg border border-border bg-bg/40 p-3 font-mono text-sm focus:border-brand focus:outline-none"
+            className="mt-3 w-full rounded-md border border-hairline bg-bg/40 p-3 font-mono text-sm focus:border-brand focus:outline-none"
           />
           {parseErrors.length > 0 && (
-            <ul className="mt-2 space-y-0.5 text-[11px] text-danger">
+            <ul className="mt-2 space-y-0.5 t-caption text-danger">
               {parseErrors.map((e, i) => <li key={i}>· {e}</li>)}
             </ul>
           )}
@@ -102,8 +102,8 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
 
       <div className="min-w-0 space-y-6">
         {!analysis ? (
-          <div className="rounded-2xl border border-border bg-card/60 p-10 text-center text-sm text-muted">
-            <BarChart3 className="mx-auto h-8 w-8 text-muted" />
+          <div className="surface p-10 text-center t-body t-muted">
+            <BarChart3 className="mx-auto h-8 w-8 t-muted" />
             <p className="mt-3">Paste holdings and click <strong>Analyze</strong> to see live P/L, sector allocation and concentration warnings.</p>
           </div>
         ) : (
@@ -121,7 +121,7 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
             </section>
 
             {analysis.warnings.length > 0 && (
-              <section className="rounded-2xl border border-warning/40 bg-gradient-to-br from-warning/10 to-warning/5 p-4 sm:p-5">
+              <section className="rounded-lg border border-warning/40 bg-gradient-to-br from-warning/10 to-warning/5 p-4 sm:p-5">
                 <div className="flex items-center gap-2 text-sm font-semibold text-warning">
                   <AlertTriangle className="h-4 w-4" />
                   Concentration warnings
@@ -130,7 +130,7 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
                   {analysis.warnings.map((w, i) => (
                     <li
                       key={i}
-                      className="flex items-start gap-2 rounded-lg border border-warning/20 bg-bg/40 px-3 py-2 text-xs text-fg/90"
+                      className="flex items-start gap-2 rounded-md border border-warning/20 bg-bg/40 px-3 py-2 text-xs text-fg/90"
                     >
                       <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
                       <span className="leading-snug">{w}</span>
@@ -140,10 +140,10 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
               </section>
             )}
 
-            <section className="surface overflow-hidden rounded-2xl shadow-soft">
+            <section className="surface overflow-hidden">
               <div className="overflow-x-auto">
                 <div className="min-w-[820px]">
-                  <div className="grid grid-cols-[minmax(0,2.2fr)_60px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)] items-center gap-x-3 border-b border-border bg-card/60 px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-muted">
+                  <div className="grid grid-cols-[minmax(0,2.2fr)_60px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)] items-center gap-x-3 border-b border-hairline bg-card/60 px-4 py-3 t-label">
                     <div className="text-left font-semibold">Symbol</div>
                     <div className="text-right font-semibold">Qty</div>
                     <div className="text-right font-semibold">Avg</div>
@@ -157,33 +157,33 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
                     return (
                       <div
                         key={r.symbol}
-                        className="row-hover grid grid-cols-[minmax(0,2.2fr)_60px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)] items-center gap-x-3 border-t border-border/50 px-4 py-3 text-sm"
+                        className="row-hover grid grid-cols-[minmax(0,2.2fr)_60px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,1.3fr)] items-center gap-x-3 border-t border-hairline px-4 py-3 text-sm"
                       >
                         <div className="flex min-w-0 items-center gap-2.5">
                           <StockLogo symbol={r.symbol} sector={r.sector as Sector} size="sm" animated={false} />
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-semibold leading-tight">{r.symbol}</div>
-                            <div className="truncate text-[11px] text-muted leading-tight">{r.sector}</div>
+                            <div className="truncate t-caption t-muted leading-tight">{r.sector}</div>
                           </div>
                         </div>
-                        <div className="text-right tabular-nums">{r.qty}</div>
-                        <div className="text-right tabular-nums text-muted">{formatINR(r.avg)}</div>
-                        <div className="text-right tabular-nums">
-                          {r.currentPrice ? formatINR(r.currentPrice) : <span className="text-muted">—</span>}
+                        <div className="text-right t-num">{r.qty}</div>
+                        <div className="text-right t-num t-muted">{formatINR(r.avg)}</div>
+                        <div className="text-right t-num">
+                          {r.currentPrice ? formatINR(r.currentPrice) : <span className="t-muted">—</span>}
                         </div>
-                        <div className="num-display text-right font-semibold tabular-nums">
+                        <div className="num-display text-right font-semibold t-num">
                           {formatCompactINR(r.currentValue)}
                         </div>
                         <div className="text-right whitespace-nowrap">
-                          <div className={cn("tabular-nums font-semibold leading-tight", up ? "text-accent" : "text-danger")}>
+                          <div className={cn("t-num font-semibold leading-tight", up ? "text-accent" : "text-danger")}>
                             {up ? "+" : ""}{formatCompactINR(r.pl)}
                           </div>
-                          <div className={cn("text-[11px] tabular-nums leading-tight", up ? "text-accent/80" : "text-danger/80")}>
+                          <div className={cn("t-caption t-num leading-tight", up ? "text-accent/80" : "text-danger/80")}>
                             {up ? "▲" : "▼"} {formatPct(r.plPct)}
                           </div>
                         </div>
                         <div className="flex items-center justify-end gap-2">
-                          <div className="h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-bg ring-1 ring-border">
+                          <div className="h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-bg ring-1 ring-hairline">
                             <div
                               className={cn(
                                 "h-full rounded-full",
@@ -192,7 +192,7 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
                               style={{ width: `${Math.min(100, r.conc)}%` }}
                             />
                           </div>
-                          <span className="tabular-nums text-xs font-semibold">{r.conc.toFixed(1)}%</span>
+                          <span className="t-num text-xs font-semibold">{r.conc.toFixed(1)}%</span>
                         </div>
                       </div>
                     );
@@ -201,14 +201,14 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
               </div>
             </section>
 
-            <section className="surface rounded-2xl p-5 shadow-soft">
+            <section className="surface p-5">
               <h3 className="text-sm font-semibold">Sector allocation</h3>
               <ul className="mt-4 space-y-2.5">
                 {analysis.sectorBreakdown.map((s) => (
                   <li key={s.sector}>
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-medium">{s.sector}</span>
-                      <span className="tabular-nums text-muted">{s.pct.toFixed(1)}% · {formatCompactINR(s.value)}</span>
+                      <span className="t-num t-muted">{s.pct.toFixed(1)}% · {formatCompactINR(s.value)}</span>
                     </div>
                     <div className="mt-1 h-2 overflow-hidden rounded-full bg-bg/60">
                       <div
@@ -226,14 +226,14 @@ export function PortfolioAnalyzer({ sectorBySymbol }: { sectorBySymbol: Record<s
 
             <Link
               href="/tools/doctor"
-              className="surface group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-brand/40 bg-gradient-to-br from-brand/10 to-brand-2/5 p-5 transition hover:-translate-y-0.5 hover:border-brand"
+              className="surface group relative flex items-center gap-4 overflow-hidden border border-brand/40 bg-gradient-to-br from-brand/10 to-brand-2/5 p-5 transition-colors duration-fast ease-out hover:border-brand"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand ring-1 ring-brand/30">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand/15 text-brand ring-1 ring-brand/30">
                 <Stethoscope className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-fg">Want a brutally honest second opinion?</p>
-                <p className="mt-0.5 text-xs text-muted">
+                <p className="mt-0.5 t-caption t-muted">
                   Try the Portfolio Doctor — AI-powered red flags, sector tilt vs Nifty, and rebalance suggestions.
                 </p>
               </div>
@@ -255,18 +255,18 @@ function SummaryCard({ label, value, sub, tone, icon }: {
 }) {
   const color = tone === "accent" ? "text-accent" : tone === "danger" ? "text-danger" : "text-fg";
   return (
-    <div className="surface-strong rounded-2xl p-5 shadow-soft">
+    <div className="surface p-5">
       <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase text-muted">{label}</div>
+        <div className="t-label">{label}</div>
         {icon && (
           <span className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg ring-1",
+            "flex h-7 w-7 items-center justify-center rounded-md ring-1",
             tone === "accent" ? "bg-accent/15 text-accent ring-accent/30" : "bg-danger/15 text-danger ring-danger/30",
           )}>{icon}</span>
         )}
       </div>
-      <div className={cn("num-display mt-2 text-2xl font-bold tabular-nums", color)}>{value}</div>
-      {sub && <div className={cn("text-xs font-semibold tabular-nums", color)}>{sub}</div>}
+      <div className={cn("num-display mt-2 text-2xl font-bold t-num", color)}>{value}</div>
+      {sub && <div className={cn("text-xs font-semibold t-num", color)}>{sub}</div>}
     </div>
   );
 }

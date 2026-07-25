@@ -1,6 +1,7 @@
 import type { CorporateActions as Actions, Dividend, Split } from "@/lib/events";
 import { formatINR, cn } from "@/lib/utils";
 import { IndianRupee, Scissors } from "lucide-react";
+import { CollapsibleGroup } from "@/components/ui/CollapsibleGroup";
 
 type TimelineItem =
   | { kind: "dividend"; date: number; amount: number }
@@ -10,7 +11,7 @@ export function CorporateActions({ actions }: { actions: Actions }) {
   const { dividends, splits } = actions;
   if (!dividends.length && !splits.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card/60 p-6 text-sm text-muted">
+      <div className="rounded-lg border border-dashed border-hairline bg-card/60 p-6 t-body t-muted">
         No corporate actions in the last 5 years.
       </div>
     );
@@ -26,6 +27,11 @@ export function CorporateActions({ actions }: { actions: Actions }) {
   ].sort((a, b) => b.date - a.date);
 
   const byYear = groupByYear(items);
+  const yearEntries = Object.entries(byYear);
+  // Cap initial render to the two most recent years; older years hide behind a toggle.
+  const recentYears = yearEntries.slice(0, 2);
+  const olderYears = yearEntries.slice(2);
+  const olderCount = olderYears.reduce((s, [, list]) => s + list.length, 0);
 
   return (
     <div className="space-y-4">
@@ -36,12 +42,23 @@ export function CorporateActions({ actions }: { actions: Actions }) {
         <SummaryCard label="Latest Action" value={items[0] ? formatRelative(items[0].date) : "—"} sub={items[0] ? labelFor(items[0]) : ""} />
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-5">
-        <div className="space-y-5">
-          {Object.entries(byYear).map(([year, list]) => (
-            <YearBlock key={year} year={year} items={list} />
+      <div className="surface p-4 sm:p-5">
+        <CollapsibleGroup
+          className="space-y-5"
+          moreLabel={`Show ${olderCount} older action${olderCount === 1 ? "" : "s"}`}
+          head={
+            <div className="space-y-5">
+              {recentYears.map(([year, list]) => (
+                <YearBlock key={year} year={year} items={list} />
+              ))}
+            </div>
+          }
+          tail={olderYears.map(([year, list]) => (
+            <div key={year} className="mt-5">
+              <YearBlock year={year} items={list} />
+            </div>
           ))}
-        </div>
+        />
       </div>
     </div>
   );
@@ -50,22 +67,22 @@ export function CorporateActions({ actions }: { actions: Actions }) {
 function YearBlock({ year, items }: { year: string; items: TimelineItem[] }) {
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
+      <div className="mb-2 flex items-center gap-2 t-label">
         <span>{year}</span>
-        <div className="h-px flex-1 bg-border" />
+        <div className="h-px flex-1 bg-hairline" />
       </div>
       <ul className="space-y-2">
         {items.map((item, i) => (
-          <li key={`${item.kind}-${item.date}-${i}`} className="flex items-center gap-3 rounded-xl bg-bg/40 px-3 py-2 ring-1 ring-border">
+          <li key={`${item.kind}-${item.date}-${i}`} className="flex items-center gap-3 rounded-md bg-bg/40 px-3 py-2 ring-1 ring-hairline">
             <span className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
               item.kind === "dividend" ? "bg-accent/15 text-accent" : "bg-warning/15 text-warning",
             )}>
               {item.kind === "dividend" ? <IndianRupee className="h-4 w-4" /> : <Scissors className="h-4 w-4" />}
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold">{labelFor(item)}</div>
-              <div className="text-[11px] text-muted">{formatDate(item.date)}</div>
+              <div className="t-caption t-muted">{formatDate(item.date)}</div>
             </div>
           </li>
         ))}
@@ -76,10 +93,10 @@ function YearBlock({ year, items }: { year: string; items: TimelineItem[] }) {
 
 function SummaryCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-3 py-2.5 shadow-soft">
-      <div className="text-[9px] uppercase tracking-wide text-muted">{label}</div>
-      <div className="mt-0.5 text-base font-bold tabular-nums">{value}</div>
-      {sub && <div className="text-[10px] text-muted">{sub}</div>}
+    <div className="rounded-md border border-hairline bg-card px-3 py-2.5 shadow-e1">
+      <div className="t-label">{label}</div>
+      <div className="mt-0.5 text-base font-bold t-num">{value}</div>
+      {sub && <div className="t-caption t-muted">{sub}</div>}
     </div>
   );
 }

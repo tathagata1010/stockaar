@@ -45,7 +45,7 @@ export function LazyMount({
 
 function DefaultFallback() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+    <div className="surface p-6 shadow-soft">
       <div className="h-4 w-32 shimmer rounded" />
       <div className="mt-4 space-y-2">
         {[...Array(5)].map((_, i) => (
