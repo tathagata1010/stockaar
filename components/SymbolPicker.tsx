@@ -18,7 +18,7 @@ export type SymbolPickerProps = {
   size?: "md" | "sm";
   /**
    * Optional select handler. If omitted, the picker navigates to
-   * `/tools/should-i-buy?symbol=<symbol>` (legacy default).
+   * `/tools/stock-check?symbol=<symbol>` (legacy default).
    */
   onSelect?: (entry: SymbolEntry) => void;
   /** Clear the input after a successful pick. Default: true when onSelect is provided. */
@@ -112,7 +112,7 @@ export function SymbolPicker({
     if (onSelect) {
       onSelect(s);
     } else {
-      router.push(`/tools/should-i-buy?symbol=${s.symbol}`);
+      router.push(`/tools/stock-check?symbol=${s.symbol}`);
     }
   }
 

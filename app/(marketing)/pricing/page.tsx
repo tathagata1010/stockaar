@@ -28,7 +28,7 @@ const PRO_FEATURES = [
   "Unlimited stocks & alerts",
   "AI brief on every stock (Claude-powered)",
   "Scorecard (4-pillar fundamentals)",
-  "Buy / Hold / Sell calls",
+  "Signal tilt & broker consensus",
   "Screener with 15+ filters",
   "Hot Stocks & Market Anomalies",
   "RSI scanner",

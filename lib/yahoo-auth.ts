@@ -6,7 +6,7 @@ const CRUMB_KEY = "yahoo:crumb";
 const CRUMB_TTL = 60 * 60 * 12;
 const CRUMB_NEG_KEY = "yahoo:crumb:fail";
 const CRUMB_NEG_TTL = 60; // skip Yahoo entirely for 60s after a crumb failure
-const CRUMB_FETCH_TIMEOUT_MS = 3000;
+const CRUMB_FETCH_TIMEOUT_MS = 8000;
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 

@@ -6,20 +6,20 @@ import { useChartTheme } from "@/lib/hooks/useChartTheme";
 type Counts = { strongBuy: number; buy: number; hold: number; sell: number; strongSell: number };
 
 const SLICE_KEYS = [
-  { key: "strongBuy",  label: "Strong Buy",  tone: "brand2"  },
-  { key: "buy",        label: "Buy",         tone: "accent"  },
-  { key: "hold",       label: "Hold",        tone: "muted"   },
-  { key: "sell",       label: "Sell",        tone: "warning" },
-  { key: "strongSell", label: "Strong Sell", tone: "danger"  },
+  { key: "strongBuy",  label: "Very Positive", tone: "brand2"  },
+  { key: "buy",        label: "Positive",      tone: "accent"  },
+  { key: "hold",       label: "Neutral",       tone: "muted"   },
+  { key: "sell",       label: "Cautious",      tone: "warning" },
+  { key: "strongSell", label: "Very Cautious", tone: "danger"  },
 ] as const;
 
 function consensusLabel(mean?: number): string {
   if (!mean) return "—";
-  if (mean < 1.5) return "Strong Buy";
-  if (mean < 2.5) return "Buy";
-  if (mean < 3.5) return "Hold";
-  if (mean < 4.5) return "Sell";
-  return "Strong Sell";
+  if (mean < 1.5) return "Very Positive";
+  if (mean < 2.5) return "Positive";
+  if (mean < 3.5) return "Neutral";
+  if (mean < 4.5) return "Cautious";
+  return "Very Cautious";
 }
 
 export function AnalystRatingsDonut({

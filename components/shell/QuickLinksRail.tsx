@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Star, Flame, Target, Filter, Zap, Bell,
-  Newspaper, Layers3, CalendarDays, Briefcase, ShoppingCart, Activity,
+  LayoutDashboard, Star, Flame, Filter, Zap, Bell,
+  Newspaper, Layers3, CalendarDays, Briefcase, SearchCheck, Activity,
   GraduationCap, User2, Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,6 @@ const LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Main" as const },
   { href: "/watchlist", label: "Watchlist", icon: Star, group: "Main" as const },
   { href: "/screener", label: "Screener", icon: Filter, group: "Main" as const },
-  { href: "/calls", label: "Calls", icon: Target, group: "Main" as const },
   { href: "/news", label: "News", icon: Newspaper, group: "Main" as const },
 
   { href: "/trending", label: "Trending", icon: Flame, group: "Discover" as const },
@@ -26,7 +25,7 @@ const LINKS = [
 
   { href: "/tools/doctor", label: "Portfolio Doctor", icon: Stethoscope, group: "Tools" as const },
   { href: "/tools/portfolio", label: "Portfolio", icon: Briefcase, group: "Tools" as const },
-  { href: "/tools/should-i-buy", label: "Should I Buy?", icon: ShoppingCart, group: "Tools" as const },
+  { href: "/tools/stock-check", label: "Stock Check", icon: SearchCheck, group: "Tools" as const },
   { href: "/tools/rsi", label: "RSI scanner", icon: Activity, group: "Tools" as const },
   { href: "/learn", label: "Learn hub", icon: GraduationCap, group: "Tools" as const },
   { href: "/account", label: "Account", icon: User2, group: "Tools" as const },

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { Stethoscope, Bell, Newspaper, Star, LineChart, ShoppingCart } from "lucide-react";
+import { Stethoscope, Bell, Newspaper, Star, LineChart, SearchCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Variant = "solid" | "outline" | "bare";
@@ -34,7 +34,7 @@ const VARIANTS: Record<Variant, string> = {
 /**
  * Ticker pill with a hover popover offering quick actions.
  * Renders as a Link (the stock page is the destination); the popover
- * exposes secondary jumps — watchlist, alerts, doctor, should-i-buy.
+ * exposes secondary jumps — watchlist, alerts, doctor, stock-check.
  */
 export function TickerChip({ symbol, name, variant = "outline", size = "sm", className, children }: Props) {
   const [open, setOpen] = useState(false);
@@ -101,7 +101,7 @@ export function TickerChip({ symbol, name, variant = "outline", size = "sm", cla
           <span className="grid grid-cols-1 gap-0.5">
             <ChipAction href={`/stock/${symbol}`} icon={LineChart} label="Open stock page" />
             <ChipAction href={`/tools/doctor?symbol=${symbol}`} icon={Stethoscope} label="Doctor verdict" />
-            <ChipAction href={`/tools/should-i-buy?symbol=${symbol}`} icon={ShoppingCart} label="Should I buy?" />
+            <ChipAction href={`/tools/stock-check?symbol=${symbol}`} icon={SearchCheck} label="Stock check" />
             <ChipAction href={`/alerts?symbol=${symbol}`} icon={Bell} label="Set an alert" />
             <ChipAction href={`/watchlist?add=${symbol}`} icon={Star} label="Add to watchlist" />
             <ChipAction href={`/news?stock=${symbol}`} icon={Newspaper} label="Read news" />

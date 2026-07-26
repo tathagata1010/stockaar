@@ -27,9 +27,9 @@ function timeAgo(ts: number): string {
 function signalTone(s: string | null): { label: string; cls: string } {
   if (!s) return { label: "—", cls: "bg-card text-muted ring-border" };
   const u = s.toUpperCase();
-  if (u.includes("STRONG BUY") || u === "BUY") return { label: s, cls: "bg-accent/15 text-accent ring-accent/30" };
-  if (u.includes("SELL")) return { label: s, cls: "bg-danger/15 text-danger ring-danger/30" };
-  return { label: s, cls: "bg-brand/15 text-brand ring-brand/30" };
+  if (u === "POSITIVE") return { label: "POSITIVE", cls: "bg-accent/15 text-accent ring-accent/30" };
+  if (u === "CAUTION") return { label: "CAUTION", cls: "bg-danger/15 text-danger ring-danger/30" };
+  return { label: "NEUTRAL", cls: "bg-brand/15 text-brand ring-brand/30" };
 }
 
 function riskMeter(r: AIBriefType["riskLevel"]): { label: string; pct: number; color: string } {

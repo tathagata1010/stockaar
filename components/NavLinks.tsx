@@ -6,16 +6,15 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useDismiss } from "@/lib/hooks/useDismiss";
 import {
-  LayoutDashboard, Star, Flame, Target, Filter, Zap, Bell,
-  Newspaper, Layers3, CalendarDays, Wrench, GraduationCap, ChevronDown,
-  Briefcase, ShoppingCart, Activity, Sparkles, Stethoscope,
+  LayoutDashboard, Star, Flame, Filter, Zap, Bell,
+  Newspaper, Layers3, CalendarDays, GraduationCap, ChevronDown,
+  Briefcase, SearchCheck, Activity, Sparkles, Stethoscope,
 } from "lucide-react";
 
 export const PRIMARY = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, hideAtLg: false },
   { href: "/watchlist", label: "Watchlist", icon: Star,            hideAtLg: false },
   { href: "/hot-stocks", label: "Hot",      icon: Flame,           hideAtLg: false },
-  { href: "/calls",     label: "Calls",     icon: Target,          hideAtLg: false },
   { href: "/screener",  label: "Screener",  icon: Filter,          hideAtLg: false },
   { href: "/news",      label: "News",      icon: Newspaper,       hideAtLg: true  },
 ];
@@ -32,7 +31,7 @@ export const DISCOVER = [
 export const TOOLS = [
   { href: "/tools/doctor", label: "Portfolio Doctor", icon: Stethoscope, desc: "NEW · AI health check for your holdings" },
   { href: "/tools/portfolio", label: "Portfolio Analyzer", icon: Briefcase, desc: "Concentration & P/L" },
-  { href: "/tools/should-i-buy", label: "Should I Buy?", icon: ShoppingCart, desc: "Instant stock verdict" },
+  { href: "/tools/stock-check", label: "Stock Check", icon: SearchCheck, desc: "Instant signal tilt" },
   { href: "/tools/rsi", label: "RSI Scanner", icon: Activity, desc: "Overbought / oversold" },
   { href: "/learn", label: "Learn Hub", icon: GraduationCap, desc: "Investing guides" },
 ];

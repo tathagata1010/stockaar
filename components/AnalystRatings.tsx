@@ -1,17 +1,7 @@
 import type { Fundamentals } from "@/lib/fundamentals";
-import type { BrokerReport, BrokerAction } from "@/lib/trendlyne-brokers";
+import type { BrokerReport } from "@/lib/trendlyne-brokers";
 import { AnalystRatingsDonut } from "@/components/charts/AnalystRatingsDonut";
 import { cn, formatINR } from "@/lib/utils";
-
-const BADGE_CLS: Record<BrokerAction, string> = {
-  Buy:        "bg-accent/15 text-accent ring-accent/30",
-  Accumulate: "bg-accent/15 text-accent ring-accent/30",
-  Sell:       "bg-danger/15 text-danger ring-danger/30",
-  Reduce:     "bg-danger/15 text-danger ring-danger/30",
-  Hold:       "bg-muted/10 text-muted ring-border",
-  Neutral:    "bg-muted/10 text-muted ring-border",
-  Other:      "bg-muted/10 text-muted ring-border",
-};
 
 export function AnalystRatings({
   f,
@@ -24,8 +14,6 @@ export function AnalystRatings({
   const total = counts ? counts.strongBuy + counts.buy + counts.hold + counts.sell + counts.strongSell : 0;
   if (total === 0 && reports.length === 0) return null;
 
-  const buyish = reports.filter((r) => r.action === "Buy" || r.action === "Accumulate").length;
-  const sellish = reports.filter((r) => r.action === "Sell" || r.action === "Reduce").length;
   const latestTarget = reports.find((r) => r.target != null)?.target;
 
   return (
@@ -43,8 +31,6 @@ export function AnalystRatings({
                 {reports.length}
               </span>
               <div className="hidden flex-1 items-center gap-3 text-xs text-muted sm:flex">
-                {buyish > 0 && <span><span className="font-medium text-accent">{buyish}</span> buy</span>}
-                {sellish > 0 && <span><span className="font-medium text-danger">{sellish}</span> sell</span>}
                 {latestTarget != null && (
                   <span>
                     Latest target <span className="font-medium tabular-nums text-fg">{formatINR(latestTarget)}</span>
@@ -64,7 +50,7 @@ export function AnalystRatings({
             {reports.map((r, i) => (
               <li
                 key={`${r.url}-${i}`}
-                className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-2.5 text-sm sm:grid-cols-[1fr_auto_auto_auto]"
+                className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-2.5 text-sm sm:grid-cols-[1fr_auto_auto]"
               >
                 <a
                   href={r.url}
@@ -75,12 +61,6 @@ export function AnalystRatings({
                 >
                   {r.firm}
                 </a>
-                <span className={cn(
-                  "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1",
-                  BADGE_CLS[r.action],
-                )}>
-                  {r.action}
-                </span>
                 <span className="tabular-nums text-xs text-muted sm:text-right">
                   {r.target != null ? formatINR(r.target) : "—"}
                 </span>

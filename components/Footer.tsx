@@ -6,7 +6,6 @@ const PRODUCT = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/hot-stocks", label: "Hot Stocks" },
-  { href: "/calls", label: "Calls" },
   { href: "/screener", label: "Screener" },
   { href: "/news", label: "News" },
 ];
@@ -27,7 +26,7 @@ const COMPANY = [
 
 const TOOLS = [
   { href: "/tools/portfolio", label: "Portfolio Analyzer" },
-  { href: "/tools/should-i-buy", label: "Should I Buy?" },
+  { href: "/tools/stock-check", label: "Stock Check" },
   { href: "/tools/rsi", label: "RSI Scanner" },
   { href: "/calendar", label: "Earnings Calendar" },
 ];

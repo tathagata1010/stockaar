@@ -166,7 +166,7 @@ export function buildBriefHtml({
     <div style="background:#fff;border:1px solid #e2e7f0;border-radius:18px;padding:24px;margin-top:14px">
       <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#0e1525;margin-bottom:14px">🎯 Try these next</div>
       <table style="width:100%;border-collapse:separate;border-spacing:0"><tr>
-        ${featureTile("🎯", "Should I Buy?", "5-tier verdict in 10 seconds. Risk, horizon, position size.", "Get verdict", `${siteUrl}/tools/should-i-buy`, "#4f46e5")}
+        ${featureTile("🎯", "Stock Check", "Signal tilt in 10 seconds. Risk, horizon, scorecard.", "Run check", `${siteUrl}/tools/stock-check`, "#4f46e5")}
         ${featureTile("🎮", "Live Screener", "Drag sliders, click presets, watch the universe narrow.", "Open screener", `${siteUrl}/screener`, "#06b6d4")}
         ${featureTile("🔥", "Hot Stocks", "What is unusual today — volume spikes, breakouts.", "See picks", `${siteUrl}/hot-stocks`, "#dc2626")}
       </tr></table>

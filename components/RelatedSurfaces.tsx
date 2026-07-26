@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Stethoscope, Bell, Newspaper, Layers3, Star, Flame,
-  Sparkles, Target, LineChart, ShoppingCart, Compass,
+  Sparkles, LineChart, SearchCheck, Compass,
 } from "lucide-react";
 import { NSE_SYMBOLS_LITE } from "@/lib/nse-symbols-lite";
 
@@ -68,10 +68,10 @@ function buildCards({ kind, contextSymbol, contextName, sector }: RelatedSurface
       icon: Star,
     });
     cards.push({
-      href: `/tools/should-i-buy?symbol=${contextSymbol}`,
-      label: "Should I buy?",
-      desc: "Instant verdict",
-      icon: ShoppingCart,
+      href: `/tools/stock-check?symbol=${contextSymbol}`,
+      label: "Stock check",
+      desc: "Instant signal tilt",
+      icon: SearchCheck,
     });
   }
 
@@ -108,12 +108,6 @@ function buildCards({ kind, contextSymbol, contextName, sector }: RelatedSurface
       label: "Hot stocks",
       desc: "Volume + momentum picks",
       icon: Sparkles,
-    });
-    cards.push({
-      href: "/calls",
-      label: "Stock calls",
-      desc: "Buy · Hold · Caution signals",
-      icon: Target,
     });
   }
 

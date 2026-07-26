@@ -10,7 +10,6 @@ const AUTHED_PREFIXES = [
   "/hot-stocks",
   "/anomalies",
   "/calendar",
-  "/calls",
   "/trending",
   "/guidance",
   "/news",

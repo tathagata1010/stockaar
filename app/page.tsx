@@ -41,7 +41,7 @@ const FEATURES = [
   {
     icon: <Bot className="h-5 w-5" />,
     title: "AI Brief per stock",
-    body: "Bull case, bear case, moat, 12-month bull/base/bear price targets — generated fresh, cited from primary news.",
+    body: "Bull thesis, bear thesis, moat and a 12-month scenario map — generated fresh, cited from primary news.",
   },
   {
     icon: <Bell className="h-5 w-5" />,
@@ -237,8 +237,7 @@ function Hero() {
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed t-mid md:text-lg">
             Live prices, AI briefs, scorecards, anomalies and earnings — for the stocks
-            <em className="not-italic font-medium text-fg"> you</em> follow. We email you the moment something hits a buy
-            or sell zone. No charts to stare at.
+            <em className="not-italic font-medium text-fg"> you</em> follow. We email you the moment your alert triggers. No charts to stare at.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link href="/auth/signup" className="btn-brand inline-flex items-center gap-2 px-6 py-3 text-base">
