@@ -3,6 +3,15 @@ import { Redis } from "@upstash/redis";
 const url = process.env.UPSTASH_REDIS_REST_URL;
 const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+// IMPORTANT: force every underlying fetch() the Upstash client makes to bypass
+// Next.js's fetch Data Cache. Without this, whichever cache option the SDK's
+// bundled build happens to pass (it only self-defaults to "no-store" in its
+// ESM build) is at the mercy of which module format Next's per-route bundler
+// picks — leaving room for a route's very first redis.get() to get cached by
+// Next indefinitely (regardless of Redis actually changing afterward, and
+// invisible to browser-side cache-busting since it's a server-side cache).
+// Being explicit here removes that ambiguity for every command this client issues.
+
 // -----------------------------------------------------------------------------
 // In-process LRU tier
 // -----------------------------------------------------------------------------
@@ -229,4 +238,6 @@ function makeResilientRedis(real: Redis): Redis {
 }
 
 export const redis: Redis =
-  url && token ? makeResilientRedis(new Redis({ url, token })) : noopRedis;
+  url && token
+    ? makeResilientRedis(new Redis({ url, token, cache: "no-store" }))
+    : noopRedis;
