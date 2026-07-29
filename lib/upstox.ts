@@ -42,6 +42,7 @@ export const getQuote = cache(
 
 export async function getQuotes(
   items: { symbol: string; exchange: "NSE" | "BSE" }[],
+  opts: { deadline?: number } = {},
 ): Promise<Quote[]> {
   if (items.length === 0) return [];
 
@@ -68,7 +69,7 @@ export async function getQuotes(
   });
 
   if (misses.length > 0) {
-    const fresh = await fetchManyFromYahoo(misses);
+    const fresh = await fetchManyFromYahoo(misses, opts.deadline);
     for (const q of fresh) found.set(`${q.exchange}:${q.symbol}`, q);
 
     // Yahoo miss → try NSE public endpoint for any still-missing NSE symbols.
@@ -76,7 +77,7 @@ export async function getQuotes(
     const afterYahooMissing = unique.filter(
       (it) => !found.has(`${it.exchange}:${it.symbol}`),
     );
-    if (afterYahooMissing.length > 0) {
+    if (afterYahooMissing.length > 0 && (!opts.deadline || Date.now() < opts.deadline)) {
       nseFresh = await fetchQuotesFallback(afterYahooMissing);
       for (const q of nseFresh) found.set(`${q.exchange}:${q.symbol}`, q);
     }
@@ -106,11 +107,12 @@ export async function getQuotes(
 
 async function fetchManyFromYahoo(
   items: { symbol: string; exchange: "NSE" | "BSE" }[],
+  deadline?: number,
 ): Promise<Quote[]> {
   // Preferred: Yahoo v7 bulk (80/call) with crumb. Auth handled by yahooFetch.
   // Fallback: v8 chart per-symbol if v7 returns empty.
   const bulk = await fetchYahooV7Bulk(items);
-  if (bulk.length === 0 && items.length > 0) return fetchYahooChartFallback(items);
+  if (bulk.length === 0 && items.length > 0) return fetchYahooChartFallback(items, deadline);
   return bulk;
 }
 
@@ -170,11 +172,17 @@ async function fetchYahooV7Bulk(
 
 async function fetchYahooChartFallback(
   items: { symbol: string; exchange: "NSE" | "BSE" }[],
+  deadline?: number,
 ): Promise<Quote[]> {
   const YAHOO_CONCURRENCY = 24;
   const result: Quote[] = [];
 
   for (let i = 0; i < items.length; i += YAHOO_CONCURRENCY) {
+    // Bail out once the caller's time budget is exhausted rather than
+    // grinding through hundreds of symbols one slow batch at a time —
+    // this is the fallback path used when Yahoo's bulk endpoint is down,
+    // so it must never be allowed to blow the caller's overall deadline.
+    if (deadline && Date.now() >= deadline) break;
     const batch = items.slice(i, i + YAHOO_CONCURRENCY);
     const out = await Promise.all(
       batch.map(async (it) => {

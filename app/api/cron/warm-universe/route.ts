@@ -16,6 +16,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const t0 = Date.now();
-  const count = await warmUniverse();
-  return NextResponse.json({ count, ms: Date.now() - t0 });
+  try {
+    const count = await warmUniverse();
+    return NextResponse.json({ count, ms: Date.now() - t0 });
+  } catch (e) {
+    return NextResponse.json(
+      { error: (e as Error)?.message ?? "warm-universe failed", ms: Date.now() - t0 },
+      { status: 500 },
+    );
+  }
 }

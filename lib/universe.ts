@@ -22,6 +22,14 @@ const SOFT_TTL_MS = 2 * 60 * 60 * 1000;
 const SOFT_TTL_JITTER_MS = 15 * 60 * 1000;
 const HARD_TTL_SEC = 24 * 60 * 60;
 const FUNDAMENTALS_CONCURRENCY = 24;
+// Hard wall-clock budget for a full rebuild. Kept comfortably under the
+// warm-universe route's `maxDuration` (300s) so the function always returns
+// a valid (possibly partial) response instead of being force-killed by the
+// platform with nothing saved. Partial fundamentals misses simply aren't
+// cached, so the next cron tick resumes and fills them in — the rebuild
+// self-heals across runs instead of retrying the same 250+ symbols forever
+// whenever Yahoo is slow/unreachable.
+const REBUILD_BUDGET_MS = 240_000;
 // If a cold rebuild (no cache) doesn't finish quickly, we don't want to
 // block SSR for minutes. Callers get an empty universe; the rebuild keeps
 // running in the background and populates the LRU/Redis for the next request.
@@ -50,9 +58,12 @@ function buildRowFromParts(
 }
 
 async function rebuild(): Promise<UniverseRow[]> {
+  const deadline = Date.now() + REBUILD_BUDGET_MS;
+
   // 1. Bulk-fetch ALL quotes in one go (mget + Yahoo v7 bulk).
   const quotes = await getQuotes(
     NSE_SYMBOLS.map((s) => ({ symbol: s.symbol, exchange: s.exchange })),
+    { deadline },
   ).catch(() => [] as Quote[]);
   const quoteBy = new Map(quotes.map((q) => [`${q.exchange}:${q.symbol}`, q]));
 
@@ -61,6 +72,7 @@ async function rebuild(): Promise<UniverseRow[]> {
   const fundsBy = await getFundamentalsMany(
     NSE_SYMBOLS.map((s) => ({ symbol: s.symbol, exchange: s.exchange })),
     FUNDAMENTALS_CONCURRENCY,
+    deadline,
   );
 
   const rows: UniverseRow[] = NSE_SYMBOLS.map((entry) => {

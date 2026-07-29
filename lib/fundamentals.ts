@@ -123,6 +123,7 @@ async function fetchAndMerge(
 export async function getFundamentalsMany(
   entries: Array<{ symbol: string; exchange: "NSE" | "BSE" }>,
   concurrency = 24,
+  deadline?: number,
 ): Promise<Map<string, Fundamentals | null>> {
   const out = new Map<string, Fundamentals | null>();
   if (entries.length === 0) return out;
@@ -142,6 +143,10 @@ export async function getFundamentalsMany(
   });
 
   for (let i = 0; i < misses.length; i += concurrency) {
+    // Once the caller's time budget is spent, stop fanning out to Yahoo.
+    // Unprocessed symbols are simply left out of `out` (not negative-cached),
+    // so the next warm-universe run picks up exactly where this one left off.
+    if (deadline && Date.now() >= deadline) break;
     const batch = misses.slice(i, i + concurrency);
     await Promise.all(
       batch.map(async (m) => {

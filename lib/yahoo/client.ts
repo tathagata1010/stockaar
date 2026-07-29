@@ -6,10 +6,10 @@ import { getYahooCrumb, invalidateYahooCrumb, YAHOO_UA } from "../yahoo-auth";
 
 const BURST_TOKENS = 60;
 const REFILL_PER_SEC = 20;
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 2;
 const CIRCUIT_FAIL_THRESHOLD = 5;
 const CIRCUIT_OPEN_MS = 30_000;
-const REQUEST_TIMEOUT_MS = 8000;
+const REQUEST_TIMEOUT_MS = 5000;
 
 type CircuitState = "closed" | "open" | "half-open";
 type Circuit = { state: CircuitState; failures: number; openedAt: number };
@@ -123,7 +123,7 @@ export async function yahooFetch(url: string, opts: YahooFetchOptions = {}): Pro
       const res = await fetch(target, {
         headers,
         signal,
-        next: { revalidate: 0 },
+        cache: "no-store",
       });
 
       if (res.status === 401 || res.status === 403) {
